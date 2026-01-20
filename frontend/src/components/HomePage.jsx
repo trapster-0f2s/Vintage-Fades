@@ -51,7 +51,7 @@ const HomePage = ({ setCurrentPage, services = [] }) => { // Default empty array
               <h3 className="text-2xl font-bold mb-2">{service.name}</h3>
               <p className="text-gray-300 mb-4">{service.description}</p>
               <div className="flex justify-between items-center">
-                <span className="text-2xl font-bold text-amber-400">${service.price}</span>
+                <span className="text-2xl font-bold text-amber-400">N${service.price}</span>
                 <span className="text-sm text-gray-400">{service.duration}</span>
               </div>
             </div>

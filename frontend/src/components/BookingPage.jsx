@@ -48,7 +48,7 @@ const BookingPage = ({ services }) => {
 
       await bookingsAPI.create(bookingData);
       
-      alert(`Booking confirmed for ${bookingForm.name}!\n\nServices: ${selectedServices.map(s => s.name).join(', ')}\nTotal: $${calculateTotal()}\n\nWe'll send a confirmation to ${bookingForm.email}`);
+      alert(`Booking confirmed for ${bookingForm.name}!\n\nServices: ${selectedServices.map(s => s.name).join(', ')}\nTotal: N$${calculateTotal()}\n\nWe'll send a confirmation to ${bookingForm.email}`);
       
       // Reset form
       setBookingForm({
@@ -104,7 +104,7 @@ const BookingPage = ({ services }) => {
                     </div>
                     <p className="text-gray-600 text-sm mb-3">{service.description}</p>
                     <div className="flex justify-between items-center text-sm font-medium">
-                      <span className="text-amber-600">${service.price}</span>
+                      <span className="text-amber-600">N${service.price}</span>
                       <span className="text-gray-500 flex items-center gap-1">
                         <Clock size={14} /> {service.duration}
                       </span>
@@ -213,26 +213,15 @@ const BookingPage = ({ services }) => {
                     <span className="text-gray-600">
                       {service.name} <span className="text-xs text-gray-400">({service.duration})</span>
                     </span>
-                    <span className="font-medium">${service.price}</span>
+                    <span className="font-medium">N${service.price}</span>
                   </div>
                 ))}
                 
                 <div className="h-px bg-gray-200 my-4"></div>
                 
-                <div className="flex justify-between text-gray-600">
-                  <span>Subtotal</span>
-                  <span>${calculateTotal()}</span>
-                </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Tax (8%)</span>
-                  <span>${(calculateTotal() * 0.08).toFixed(2)}</span>
-                </div>
-                
-                <div className="h-px bg-gray-200 my-4"></div>
-                
                 <div className="flex justify-between text-xl font-bold">
                   <span>Total</span>
-                  <span>${(calculateTotal() * 1.08).toFixed(2)}</span>
+                  <span>N${calculateTotal()}</span>
                 </div>
 
                 <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-sm flex items-center gap-2 mt-4">
