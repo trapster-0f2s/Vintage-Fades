@@ -29,6 +29,7 @@ export const bookingsAPI = {
   getById: (id) => api.get(`/bookings/${id}`),
   create: (bookingData) => api.post('/bookings', bookingData),
   updateStatus: (id, status) => api.patch(`/bookings/${id}/status`, { status }),
+  update: (id, bookingData) => api.put(`/bookings/${id}`, bookingData),
   delete: (id) => api.delete(`/bookings/${id}`),
   getStats: () => api.get('/bookings/stats/summary'),
 };

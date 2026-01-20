@@ -88,6 +88,46 @@ router.patch('/:id/status', auth, async (req, res) => {
   }
 });
 
+// Update booking details (Admin only)
+router.put('/:id', auth, [
+  body('name').optional().notEmpty().trim().escape(),
+  body('email').optional().isEmail().normalizeEmail(),
+  body('phone').optional().notEmpty().trim(),
+  body('date').optional().isISO8601(),
+  body('time').optional().notEmpty(),
+  body('services').optional().isArray({ min: 1 }),
+  body('total').optional().isNumeric()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const updateData = {};
+    const allowedFields = ['name', 'email', 'phone', 'date', 'time', 'services', 'total'];
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        updateData[field] = req.body[field];
+      }
+    });
+
+    const booking = await Booking.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
+
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    res.json({ message: 'Booking updated successfully', booking });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Delete booking (Admin only)
 router.delete('/:id', auth, async (req, res) => {
   try {
