@@ -81,38 +81,43 @@ const BookingPage = ({ services }) => {
           {/* Services Selection */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <h3 className="text-xl font-bold mb-6">Select Services</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {services.map((service) => {
-                const isSelected = selectedServices.find(s => s.id === service.id);
-                return (
-                  <div
-                    key={service.id}
-                    onClick={() => toggleService(service)}
-                    className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 ${
-                      isSelected 
-                        ? 'border-amber-500 bg-amber-50' 
-                        : 'border-gray-200 hover:border-amber-300'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-bold text-lg">{service.name}</h4>
-                      {isSelected && (
-                        <div className="bg-amber-500 text-white p-1 rounded-full">
-                          <Check size={14} />
+            {Object.entries(services).map(([category, serviceList]) => (
+              <div key={category} className="mb-8">
+                <h4 className="text-lg font-semibold mb-4 text-amber-600">{category}</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {serviceList.map((service) => {
+                    const isSelected = selectedServices.find(s => s.id === service.id);
+                    return (
+                      <div
+                        key={service.id}
+                        onClick={() => toggleService(service)}
+                        className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 ${
+                          isSelected 
+                            ? 'border-amber-500 bg-amber-50' 
+                            : 'border-gray-200 hover:border-amber-300'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <h5 className="font-bold text-lg">{service.name}</h5>
+                          {isSelected && (
+                            <div className="bg-amber-500 text-white p-1 rounded-full">
+                              <Check size={14} />
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                    <p className="text-gray-600 text-sm mb-3">{service.description}</p>
-                    <div className="flex justify-between items-center text-sm font-medium">
-                      <span className="text-amber-600">N${service.price}</span>
-                      <span className="text-gray-500 flex items-center gap-1">
-                        <Clock size={14} /> {service.duration}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                        <p className="text-gray-600 text-sm mb-3">{service.description}</p>
+                        <div className="flex justify-between items-center text-sm font-medium">
+                          <span className="text-amber-600">N${service.price}</span>
+                          <span className="text-gray-500 flex items-center gap-1">
+                            <Clock size={14} /> {service.duration}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Booking Form */}

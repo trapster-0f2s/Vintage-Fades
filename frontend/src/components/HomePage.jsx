@@ -1,7 +1,7 @@
 import React from 'react';
 import { Phone, Mail, MapPin, Clock } from 'lucide-react';
 
-const HomePage = ({ setCurrentPage, services = [] }) => { // Default empty array for safety
+const HomePage = ({ setCurrentPage, services = {} }) => { // Default empty object for safety
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white p-8 space-y-16"> {/* Added responsive container */}
       
@@ -45,18 +45,23 @@ const HomePage = ({ setCurrentPage, services = [] }) => { // Default empty array
       {/* Services Preview */}
       <section className="max-w-6xl mx-auto">
         <h2 className="text-4xl font-bold text-center mb-12">Our Premium Services</h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {services.slice(0, 4).map((service, index) => (
-            <div key={service.id || index} className="p-6 bg-gray-800/50 rounded-xl hover:bg-gray-700 transition"> {/* Added key */}
-              <h3 className="text-2xl font-bold mb-2">{service.name}</h3>
-              <p className="text-gray-300 mb-4">{service.description}</p>
-              <div className="flex justify-between items-center">
-                <span className="text-2xl font-bold text-amber-400">N${service.price}</span>
-                <span className="text-sm text-gray-400">{service.duration}</span>
-              </div>
+        {Object.entries(services).map(([category, serviceList]) => (
+          <div key={category} className="mb-12">
+            <h3 className="text-2xl font-bold mb-6 text-amber-400">{category}</h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {serviceList.slice(0, 4).map((service) => (
+                <div key={service.id} className="p-6 bg-gray-800/50 rounded-xl hover:bg-gray-700 transition">
+                  <h4 className="text-xl font-bold mb-2">{service.name}</h4>
+                  <p className="text-gray-300 mb-4">{service.description}</p>
+                  <div className="flex justify-between items-center">
+                    <span className="text-2xl font-bold text-amber-400">N${service.price}</span>
+                    <span className="text-sm text-gray-400">{service.duration}</span>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
         <div className="text-center">
           <button 
             onClick={() => setCurrentPage('booking')}
