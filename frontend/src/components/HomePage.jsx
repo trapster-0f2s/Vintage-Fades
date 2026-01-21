@@ -30,16 +30,7 @@ const HomePage = ({ setCurrentPage, services = {} }) => { // Default empty objec
         <p className="text-xl mb-12 max-w-3xl mx-auto leading-relaxed">
           At Vintage Fades, we blend traditional barbering with modern techniques to deliver exceptional grooming experiences. Our team is dedicated to providing personalized consultations and precise haircuts that reflect your unique style and preferences. Step into our studio and discover the difference.
         </p>
-        <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto mb-12">
-          <div className="flex flex-col items-center p-6 bg-gray-800/50 rounded-xl">
-            <span className="text-4xl mb-4">10+</span>
-            <p>Top-notch barbering and grooming</p>
-          </div>
-          <div className="flex flex-col items-center p-6 bg-gray-800/50 rounded-xl">
-            <span className="text-4xl mb-4">98%</span>
-            <p>Client satisfaction rate, reflecting our commitment to excellence</p>
-          </div>
-        </div>
+        
       </section>
 
       {/* Services Preview */}
