@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Booking = require('../models/booking');
-const auth = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 
 // Get all bookings (Admin only)
-router.get('/', auth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const bookings = await Booking.find().sort({ date: 1, time: 1 });
     res.json(bookings);
@@ -15,7 +14,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Get booking by ID
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
     if (!booking) {
@@ -64,7 +63,7 @@ router.post('/', [
 });
 
 // Update booking status (Admin only)
-router.patch('/:id/status', auth, async (req, res) => {
+router.patch('/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
     
@@ -89,7 +88,7 @@ router.patch('/:id/status', auth, async (req, res) => {
 });
 
 // Update booking details (Admin only)
-router.put('/:id', auth, [
+router.put('/:id', [
   body('name').optional().notEmpty().trim().escape(),
   body('email').optional().isEmail().normalizeEmail(),
   body('phone').optional().notEmpty().trim(),
@@ -129,7 +128,7 @@ router.put('/:id', auth, [
 });
 
 // Delete booking (Admin only)
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const booking = await Booking.findByIdAndDelete(req.params.id);
     
@@ -144,7 +143,7 @@ router.delete('/:id', auth, async (req, res) => {
 });
 
 // Get booking statistics (Admin only)
-router.get('/stats/summary', auth, async (req, res) => {
+router.get('/stats/summary', async (req, res) => {
   try {
     const total = await Booking.countDocuments();
     const confirmed = await Booking.countDocuments({ status: 'confirmed' });

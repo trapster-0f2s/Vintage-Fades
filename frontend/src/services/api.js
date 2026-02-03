@@ -9,20 +9,6 @@ const api = axios.create({
   },
 });
 
-// Add token to requests if available
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('adminToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// Auth API
-export const authAPI = {
-  login: (password) => api.post('/auth/login', { password }),
-};
-
 // Bookings API
 export const bookingsAPI = {
   getAll: () => api.get('/bookings'),
