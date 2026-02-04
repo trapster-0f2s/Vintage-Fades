@@ -60,8 +60,9 @@ const BookingPage = ({ services = {} }) => {
       });
       setSelectedServices([]);
     } catch (error) {
-      alert('Error creating booking. Please try again.');
       console.error('Booking error:', error);
+      const serverMsg = error?.response?.data?.message || (error?.response?.data?.errors ? error.response.data.errors.map(e => e.msg).join(', ') : null);
+      alert(serverMsg ? `Error creating booking: ${serverMsg}` : 'Error creating booking. Please try again.');
     } finally {
       setLoading(false);
     }

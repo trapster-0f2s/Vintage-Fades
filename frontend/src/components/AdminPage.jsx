@@ -27,8 +27,9 @@ const AdminPage = () => {
       const response = await bookingsAPI.getAll();
       setBookings(response.data);
     } catch (err) {
-      setError('Failed to load bookings');
-      console.error(err);
+      const msg = err?.response?.data?.message || 'Failed to load bookings';
+      setError(msg);
+      console.error('Fetch bookings error:', err);
     } finally {
       setLoading(false);
     }
@@ -72,8 +73,9 @@ const AdminPage = () => {
       });
       fetchBookings();
     } catch (err) {
-      alert('Failed to add booking');
-      console.error(err);
+      const msg = err?.response?.data?.message || (err?.response?.data?.errors ? err.response.data.errors.map(e => e.msg).join(', ') : null);
+      alert(msg ? `Failed to add booking: ${msg}` : 'Failed to add booking');
+      console.error('Add booking error:', err);
     }
   };
 
