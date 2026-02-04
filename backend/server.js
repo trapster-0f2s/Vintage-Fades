@@ -19,8 +19,9 @@ app.get('/api/health', (req, res) => {
 });
 
 // Start server
-const PORT = 3001;
-const server = app.listen(PORT, '0.0.0.0', () => {
+const PORT = process.env.PORT || 3001;
+const HOST = process.env.HOST || '0.0.0.0';
+const server = app.listen(PORT, HOST, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Server listening on ${server.address().address}:${server.address().port}`);
 });
