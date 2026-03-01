@@ -76,7 +76,7 @@ const HomePage = ({ setCurrentPage, services = {} }) => { // Default empty objec
           </div>
           <div className="flex flex-col items-center p-6 bg-gray-800/50 rounded-xl space-y-4">
             <Phone size={32} className="text-amber-400" />
-            <a href="tel:+2648147486695" className="text-xl font-semibold hover:text-amber-400 transition">+264 81 474 86695</a>
+            <a href="tel:+264814748665" className="text-xl font-semibold hover:text-amber-400 transition">+264 81 474 8665</a>
           </div>
           <div className="flex flex-col items-center p-6 bg-gray-800/50 rounded-xl space-y-4 md:col-span-2">
             <MapPin size={32} className="text-amber-400" />

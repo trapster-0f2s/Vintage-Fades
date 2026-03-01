@@ -3,7 +3,6 @@ import './App.css';
 import Navigation from './components/Navigation';
 import HomePage from './components/HomePage';
 import BookingPage from './components/BookingPage';
-import AdminPage from './components/AdminPage';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
@@ -47,7 +46,6 @@ function App() {
       
         {currentPage === 'home' && <HomePage services={services} setCurrentPage={setCurrentPage} />}
         {currentPage === 'booking' && <BookingPage services={services} setCurrentPage={setCurrentPage} />}
-        {currentPage === 'admin' && <AdminPage />}
       
     </div>
   );

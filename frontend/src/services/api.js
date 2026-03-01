@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const RAW_API_URL = process.env.REACT_APP_API_URL || 'https://vintage-fades.onrender.com';
-// Ensure the base URL always includes /api so deployed envs don't accidentally point to the wrong root
+
 const API_URL = RAW_API_URL.replace(/\/+$/, '') + '/api';
 
 console.info('API base URL:', API_URL);

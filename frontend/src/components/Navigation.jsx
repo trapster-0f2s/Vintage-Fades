@@ -26,12 +26,6 @@ const Navigation = ({ currentPage, setCurrentPage }) => {
         Services
       </button>
       
-      <button 
-        onClick={() => setCurrentPage('admin')}
-        className={`hover:text-amber-400 transition ${currentPage === 'admin' ? 'text-amber-400' : ''}`}
-      >
-        Admin
-      </button>
       
       <button 
         onClick={() => setCurrentPage('booking')}
