@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// default to environment variable, otherwise assume API lives under the same origin
+const API_URL = process.env.REACT_APP_API_URL || `${window.location.origin}/api`; // when deployed to https://vintageadmin.netlify.app, this becomes https://vintageadmin.netlify.app/api
 
 const api = axios.create({
   baseURL: API_URL,

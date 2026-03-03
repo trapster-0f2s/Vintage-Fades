@@ -2,6 +2,10 @@
   command = "npm run build"
   publish = "build"
 
+[build.environment]
+  # default API root for the admin site; override in Netlify UI if backend lives elsewhere
+  REACT_APP_API_URL = "https://vintageadmin.netlify.app/api"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

@@ -28,9 +28,25 @@ This is a monorepo containing:
    npm start
    ```
 
-The admin site is a separate React application that talks to the same backend API (use `REACT_APP_API_URL` to configure).
+The admin site is a standalone React app that communicates with your backend via an API base URL configured by the `REACT_APP_API_URL` environment variable. If the API is served from the same host as the admin UI (e.g. your admin URL is `https://vintageadmin.netlify.app/` and the server responds at `https://vintageadmin.netlify.app/api`), you do **not** need to set the variable – the code now defaults to `window.location.origin + '/api'`. Otherwise set it explicitly.
 
-When you deploy, build the admin app with `npm run build` and host it independently (e.g. on a dedicated Netlify site or another domain).
+To run the admin locally against the production backend:
+
+```bash
+# in admin/.env
+REACT_APP_API_URL=https://your-backend-url.com/api
+```
+
+When you deploy, build the admin app with `npm run build` and host it independently (e.g. on Netlify). For your Netlify admin site (`https://vintageadmin.netlify.app`), you can either rely on the automatic same‑origin default or configure the environment variable under **Site settings → Build & deploy → Environment**.
+
+If you want Netlify to inject a default at build time, the following snippet in `admin/netlify.toml` ensures a placeholder:
+
+```toml
+[build.environment]
+  REACT_APP_API_URL = "https://vintageadmin.netlify.app/api"  # adjust if backend lives elsewhere
+```
+
+After deployment your admin dashboard will request bookings from the API URL and bookings should load correctly.
 - Booking management system
 - Responsive design with Tailwind CSS
 - RESTful API with JWT authentication
