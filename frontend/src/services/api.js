@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const RAW_API_URL = process.env.REACT_APP_API_URL || 'https://vintage-fades.onrender.com';
+
+const API_URL = RAW_API_URL.replace(/\/+$/, '') + '/api';
+
+console.info('API base URL:', API_URL);
 
 const api = axios.create({
   baseURL: API_URL,

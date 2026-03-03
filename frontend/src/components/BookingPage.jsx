@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Check, Clock } from 'lucide-react'; // Added Clock for the duration icon
 import { bookingsAPI } from '../services/api';
 
-const BookingPage = ({ services }) => {
+const BookingPage = ({ services = {} }) => {
   const [selectedServices, setSelectedServices] = useState([]);
   const [bookingForm, setBookingForm] = useState({
     name: '',
@@ -21,7 +21,7 @@ const BookingPage = ({ services }) => {
       }
       return [...prev, service];
     });
-  };
+  }; 
 
   const calculateTotal = () => {
     return selectedServices.reduce((sum, service) => sum + service.price, 0);
@@ -60,8 +60,9 @@ const BookingPage = ({ services }) => {
       });
       setSelectedServices([]);
     } catch (error) {
-      alert('Error creating booking. Please try again.');
       console.error('Booking error:', error);
+      const serverMsg = error?.response?.data?.message || (error?.response?.data?.errors ? error.response.data.errors.map(e => e.msg).join(', ') : null);
+      alert(serverMsg ? `Error creating booking: ${serverMsg}` : 'Error creating booking. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -81,7 +82,7 @@ const BookingPage = ({ services }) => {
           {/* Services Selection */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <h3 className="text-xl font-bold mb-6">Select Services</h3>
-            {Object.entries(services).map(([category, serviceList]) => (
+            {Object.entries(services || {}).map(([category, serviceList]) => (
               <div key={category} className="mb-8">
                 <h4 className="text-lg font-semibold mb-4 text-amber-600">{category}</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -153,8 +154,7 @@ const BookingPage = ({ services }) => {
                     value={bookingForm.phone}
                     onChange={(e) => setBookingForm({...bookingForm, phone: e.target.value})}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-amber-500 transition"
-                    placeholder="(555) 000-0000"
-                  />
+                    placeholder="+264 81 234 5678" />
                 </div>
               </div>
 
