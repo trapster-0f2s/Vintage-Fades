@@ -11,6 +11,26 @@ This is a monorepo containing:
 ## Features
 
 - Admin authentication and dashboard
+
+**Note**: The admin dashboard has been moved to its own standalone site located in the `admin` directory. The public frontend no longer contains links or navigation to the admin panel.
+
+### Admin site setup
+1. Navigate to `admin` folder:
+   ```bash
+   cd admin
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the development server:
+   ```bash
+   npm start
+   ```
+
+The admin site is a separate React application that talks to the same backend API (use `REACT_APP_API_URL` to configure).
+
+When you deploy, build the admin app with `npm run build` and host it independently (e.g. on a dedicated Netlify site or another domain).
 - Booking management system
 - Responsive design with Tailwind CSS
 - RESTful API with JWT authentication

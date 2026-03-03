@@ -26,13 +26,7 @@ const Navigation = ({ currentPage, setCurrentPage }) => {
         Services
       </button>
       
-      <button 
-        onClick={() => setCurrentPage('admin')}
-        className={`hover:text-amber-400 transition ${currentPage === 'admin' ? 'text-amber-400' : ''}`}
-      >
-        Admin
-      </button>
-      
+      {/* Admin link removed since the dashboard is now hosted separately */}
       <button 
         onClick={() => setCurrentPage('booking')}
         className="border-2 border-white px-6 py-2 rounded-lg hover:bg-white hover:text-black transition"
