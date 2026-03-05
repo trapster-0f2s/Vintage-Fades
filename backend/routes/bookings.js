@@ -4,8 +4,14 @@ const Booking = require('../models/booking');
 const { body, validationResult } = require('express-validator');
 
 // Get all bookings (Admin only)
+// also remove any bookings whose date has already passed
 router.get('/', async (req, res) => {
   try {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    // delete bookings before today
+    await Booking.deleteMany({ date: { $lt: today } });
+
     const bookings = await Booking.find().sort({ date: 1, time: 1 });
     res.json(bookings);
   } catch (error) {
@@ -29,8 +35,8 @@ router.get('/:id', async (req, res) => {
 // Create new booking
 router.post('/', [
   body('name').notEmpty().trim().escape(),
-  body('email').isEmail().normalizeEmail(),
-  body('phone').notEmpty().trim(),
+  // phone must be integer
+  body('phone').notEmpty().isInt().toInt(),
   body('date').isISO8601(),
   body('time').notEmpty(),
   body('services').isArray({ min: 1 }),
@@ -42,17 +48,16 @@ router.post('/', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, phone, date, time, services, total } = req.body;
+    const { name, phone, date, time, services, total } = req.body;
 
     const booking = new Booking({
       name,
-      email,
       phone,
       date,
       time,
       services,
       total,
-      status: 'pending'
+      // status defaults to confirmed via schema
     });
 
     await booking.save();
@@ -67,7 +72,7 @@ router.patch('/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
     
-    if (!['pending', 'confirmed', 'cancelled'].includes(status)) {
+    if (!['confirmed', 'completed', 'cancelled'].includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
 
@@ -90,8 +95,7 @@ router.patch('/:id/status', async (req, res) => {
 // Update booking details (Admin only)
 router.put('/:id', [
   body('name').optional().notEmpty().trim().escape(),
-  body('email').optional().isEmail().normalizeEmail(),
-  body('phone').optional().notEmpty().trim(),
+  body('phone').optional().notEmpty().isInt().toInt(),
   body('date').optional().isISO8601(),
   body('time').optional().notEmpty(),
   body('services').optional().isArray({ min: 1 }),
@@ -104,7 +108,7 @@ router.put('/:id', [
     }
 
     const updateData = {};
-    const allowedFields = ['name', 'email', 'phone', 'date', 'time', 'services', 'total'];
+    const allowedFields = ['name', 'phone', 'date', 'time', 'services', 'total'];
     allowedFields.forEach(field => {
       if (req.body[field] !== undefined) {
         updateData[field] = req.body[field];

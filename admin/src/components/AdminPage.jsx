@@ -5,12 +5,10 @@ const AdminPage = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [newBooking, setNewBooking] = useState({
     name: '',
-    email: '',
-    phone: '',
+    phone: 0,
     date: '',
     time: '',
     services: [],
@@ -57,33 +55,10 @@ const AdminPage = () => {
     }
   };
 
-  const handleAddBooking = async (e) => {
-    e.preventDefault();
-    try {
-      await bookingsAPI.create(newBooking);
-      setShowAddForm(false);
-      setNewBooking({
-        name: '',
-        email: '',
-        phone: '',
-        date: '',
-        time: '',
-        services: [],
-        total: 0
-      });
-      fetchBookings();
-    } catch (err) {
-      const msg = err?.response?.data?.message || (err?.response?.data?.errors ? err.response.data.errors.map(e => e.msg).join(', ') : null);
-      alert(msg ? `Failed to add booking: ${msg}` : 'Failed to add booking');
-      console.error('Add booking error:', err);
-    }
-  };
-
   const startEdit = (booking) => {
     setEditingId(booking._id);
     setNewBooking({
       name: booking.name,
-      email: booking.email,
       phone: booking.phone,
       date: booking.date,
       time: booking.time,
@@ -99,8 +74,7 @@ const AdminPage = () => {
       setEditingId(null);
       setNewBooking({
         name: '',
-        email: '',
-        phone: '',
+        phone: 0,
         date: '',
         time: '',
         services: [],
@@ -117,8 +91,7 @@ const AdminPage = () => {
     setEditingId(null);
     setNewBooking({
       name: '',
-      email: '',
-      phone: '',
+      phone: 0,
       date: '',
       time: '',
       services: [],
@@ -133,22 +106,12 @@ const AdminPage = () => {
     <div className="container mx-auto px-6 py-12">
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-4xl font-bold">Admin Dashboard</h2>
-        <div className="space-x-4">
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-          >
-            {showAddForm ? 'Cancel' : 'Add Booking'}
-          </button>
-        </div>
       </div>
 
-      {(showAddForm || editingId) && (
+      {editingId && (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
-          <h3 className="text-xl font-bold mb-4">
-            {editingId ? 'Edit Booking' : 'Add New Booking'}
-          </h3>
-          <form onSubmit={editingId ? handleUpdateBooking : handleAddBooking} className="space-y-4">
+          <h3 className="text-xl font-bold mb-4">Edit Booking</h3>
+          <form onSubmit={handleUpdateBooking} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <input
                 type="text"
@@ -159,18 +122,10 @@ const AdminPage = () => {
                 required
               />
               <input
-                type="email"
-                placeholder="Email"
-                value={newBooking.email}
-                onChange={(e) => setNewBooking({...newBooking, email: e.target.value})}
-                className="border p-2 rounded"
-                required
-              />
-              <input
-                type="tel"
+                type="number"
                 placeholder="Phone"
                 value={newBooking.phone}
-                onChange={(e) => setNewBooking({...newBooking, phone: e.target.value})}
+                onChange={(e) => setNewBooking({...newBooking, phone: parseInt(e.target.value) || 0})}
                 className="border p-2 rounded"
                 required
               />
@@ -204,12 +159,21 @@ const AdminPage = () => {
               onChange={(e) => setNewBooking({...newBooking, services: e.target.value.split(',').map(s => s.trim())})}
               className="border p-2 rounded w-full"
             />
-            <button
-              type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              {editingId ? 'Update' : 'Add'}
-            </button>
+            <div className="space-x-4">
+              <button
+                type="submit"
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                Update
+              </button>
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
+              >
+                Cancel
+              </button>
+            </div>
           </form>
         </div>
       )}
@@ -218,7 +182,6 @@ const AdminPage = () => {
         <thead>
           <tr>
             <th className="py-2 px-4 border">Name</th>
-            <th className="py-2 px-4 border">Email</th>
             <th className="py-2 px-4 border">Phone</th>
             <th className="py-2 px-4 border">Date</th>
             <th className="py-2 px-4 border">Time</th>
@@ -231,7 +194,6 @@ const AdminPage = () => {
           {bookings.map((bk) => (
             <tr key={bk._id} className="text-center">
               <td className="py-2 px-4 border">{bk.name}</td>
-              <td className="py-2 px-4 border">{bk.email}</td>
               <td className="py-2 px-4 border">{bk.phone}</td>
               <td className="py-2 px-4 border">{bk.date}</td>
               <td className="py-2 px-4 border">{bk.time}</td>
@@ -242,7 +204,6 @@ const AdminPage = () => {
                   onChange={(e) => updateStatus(bk._id, e.target.value)}
                   className="border p-1 rounded"
                 >
-                  <option value="pending">Pending</option>
                   <option value="confirmed">Confirmed</option>
                   <option value="completed">Completed</option>
                 </select>

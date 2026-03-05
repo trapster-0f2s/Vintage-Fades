@@ -6,16 +6,11 @@ const BookingSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  email: {
-    type: String,
-    required: true,
-    trim: true,
-    lowercase: true
-  },
+  // `email` was removed per request; only phone number is stored now.
   phone: {
-    type: String,
+    type: Number,
     required: true,
-    trim: true
+    // we'll enforce integer values in validation
   },
   date: {
     type: Date,
@@ -35,8 +30,8 @@ const BookingSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'cancelled'],
-    default: 'pending'
+    enum: ['confirmed', 'completed', 'cancelled'],
+    default: 'confirmed'
   },
   createdAt: {
     type: Date,
