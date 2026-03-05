@@ -1,7 +1,11 @@
 import axios from 'axios';
 
 // default to environment variable, otherwise assume API lives under the same origin
-const API_URL = process.env.REACT_APP_API_URL || `${window.location.origin}/api`; // when deployed to https://vintageadmin.netlify.app, this becomes https://vintageadmin.netlify.app/api
+// guard window access so build servers (Node) won't crash
+const baseOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+const API_URL = process.env.REACT_APP_API_URL || (baseOrigin ? `${baseOrigin}/api` : ''); // when deployed the origin is automatically used
+
+console.info('Admin API base URL:', API_URL);
 
 const api = axios.create({
   baseURL: API_URL,

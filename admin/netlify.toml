@@ -3,8 +3,8 @@
   publish = "build"
 
 [build.environment]
-  # default API root for the admin site; override in Netlify UI if backend lives elsewhere
-  REACT_APP_API_URL = "https://vintageadmin.netlify.app/api"
+  # API root for the admin site; set this to your backend URL (e.g. Render/Heroku)
+  REACT_APP_API_URL = "https://vintage-fades.onrender.com"
 
 [[redirects]]
   from = "/*"
