@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { bookingsAPI } from '../services/api';
 
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+};
+
 const AdminPage = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -195,7 +205,7 @@ const AdminPage = () => {
             <tr key={bk._id} className="text-center">
               <td className="py-2 px-4 border">{bk.name}</td>
               <td className="py-2 px-4 border">{bk.phone}</td>
-              <td className="py-2 px-4 border">{bk.date}</td>
+              <td className="py-2 px-4 border">{formatDate(bk.date)}</td>
               <td className="py-2 px-4 border">{bk.time}</td>
               <td className="py-2 px-4 border">{bk.total}</td>
               <td className="py-2 px-4 border">
