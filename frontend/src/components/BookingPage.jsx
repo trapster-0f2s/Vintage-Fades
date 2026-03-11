@@ -31,8 +31,15 @@ const BookingPage = ({ services = {} }) => {
       alert('Please select at least one service');
       return;
     }
-    if (!Object.values(bookingForm).every(val => val)) {
-      alert('Please fill in all fields');
+    
+    const missingFields = [];
+    if (!bookingForm.name) missingFields.push('Full Name');
+    if (!bookingForm.phone) missingFields.push('Phone');
+    if (!bookingForm.date) missingFields.push('Date');
+    if (!bookingForm.time) missingFields.push('Time');
+    
+    if (missingFields.length > 0) {
+      alert(`Please fill out the following field(s): ${missingFields.join(', ')}`);
       return;
     }
 
