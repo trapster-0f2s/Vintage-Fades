@@ -6,7 +6,6 @@ const BookingPage = ({ services = {} }) => {
   const [selectedServices, setSelectedServices] = useState([]);
   const [bookingForm, setBookingForm] = useState({
     name: '',
-    email: '',
     phone: '',
     date: '',
     time: ''
@@ -48,12 +47,11 @@ const BookingPage = ({ services = {} }) => {
 
       await bookingsAPI.create(bookingData);
       
-      alert(`Booking confirmed for ${bookingForm.name}!\n\nServices: ${selectedServices.map(s => s.name).join(', ')}\nTotal: N$${calculateTotal()}\n\nWe'll send a confirmation to ${bookingForm.email}`);
+      alert(`Booking confirmed for ${bookingForm.name}!\n\nServices: ${selectedServices.map(s => s.name).join(', ')}\nTotal: N$${calculateTotal()}`);
       
       // Reset form
       setBookingForm({
         name: '',
-        email: '',
         phone: '',
         date: '',
         time: ''
@@ -136,20 +134,14 @@ const BookingPage = ({ services = {} }) => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <input
-                    type="tel"
-                    value={bookingForm.phone}
-                    onChange={(e) => setBookingForm({...bookingForm, phone: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-amber-500 transition"
-                    placeholder="+264 81 234 5678" />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <input
+                  type="tel"
+                  value={bookingForm.phone}
+                  onChange={(e) => setBookingForm({...bookingForm, phone: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-amber-500 transition"
+                  placeholder="+264 81 234 5678" />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

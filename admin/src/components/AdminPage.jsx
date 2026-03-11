@@ -27,6 +27,12 @@ const AdminPage = () => {
 
   useEffect(() => {
     fetchBookings();
+    
+    // Set up auto-refresh every 15 minutes (900,000 milliseconds)
+    const refreshInterval = setInterval(fetchBookings, 15 * 60 * 1000);
+    
+    // Cleanup interval on component unmount
+    return () => clearInterval(refreshInterval);
   }, []);
 
   const fetchBookings = async () => {
