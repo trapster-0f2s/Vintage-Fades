@@ -1,8 +1,16 @@
-import React, { useState } from 'react';
-import { Check, Clock } from 'lucide-react'; // Added Clock for the duration icon
+import React, { useMemo, useState } from 'react';
+import { AlertCircle, Check, Clock, Scissors } from 'lucide-react';
+import { getEstimatedDuration, getTimeOptions, getTodayInputValue } from '../data/services';
 import { bookingsAPI } from '../services/api';
 
-const BookingPage = ({ services = {} }) => {
+const getApiError = (error) => {
+  const data = error?.response?.data;
+  if (data?.message) return data.message;
+  if (Array.isArray(data?.errors)) return data.errors.map((item) => item.msg).join(', ');
+  return 'We could not create the booking. Please try again.';
+};
+
+const BookingPage = ({ services = {}, setCurrentPage }) => {
   const [selectedServices, setSelectedServices] = useState([]);
   const [bookingForm, setBookingForm] = useState({
     name: '',
@@ -11,233 +19,261 @@ const BookingPage = ({ services = {} }) => {
     time: ''
   });
   const [loading, setLoading] = useState(false);
+  const [notice, setNotice] = useState(null);
 
-  const toggleService = (service) => {
-    setSelectedServices(prev => {
-      const exists = prev.find(s => s.id === service.id);
-      if (exists) {
-        return prev.filter(s => s.id !== service.id);
+  const timeOptions = useMemo(() => getTimeOptions(bookingForm.date), [bookingForm.date]);
+  const total = selectedServices.reduce((sum, service) => sum + service.price, 0);
+  const duration = getEstimatedDuration(selectedServices);
+
+  const updateForm = (field, value) => {
+    setBookingForm((current) => {
+      const next = { ...current, [field]: value };
+      if (field === 'date') {
+        const availableTimes = getTimeOptions(value).map((option) => option.value);
+        if (!availableTimes.includes(next.time)) {
+          next.time = '';
+        }
       }
-      return [...prev, service];
+      return next;
     });
-  }; 
-
-  const calculateTotal = () => {
-    return selectedServices.reduce((sum, service) => sum + service.price, 0);
+    setNotice(null);
   };
 
-  const handleBooking = async () => {
-    if (selectedServices.length === 0) {
-      alert('Please select at least one service');
-      return;
-    }
-    
-    const missingFields = [];
-    if (!bookingForm.name) missingFields.push('Full Name');
-    if (!bookingForm.phone) missingFields.push('Phone');
-    if (!bookingForm.date) missingFields.push('Date');
-    if (!bookingForm.time) missingFields.push('Time');
-    
-    if (missingFields.length > 0) {
-      alert(`Please fill out the following field(s): ${missingFields.join(', ')}`);
+  const toggleService = (service) => {
+    setSelectedServices((current) => {
+      const exists = current.some((item) => item.id === service.id);
+      return exists
+        ? current.filter((item) => item.id !== service.id)
+        : [...current, service];
+    });
+    setNotice(null);
+  };
+
+  const validateForm = () => {
+    if (selectedServices.length === 0) return 'Choose at least one service.';
+    if (!bookingForm.name.trim()) return 'Enter your full name.';
+    if (!bookingForm.phone.trim()) return 'Enter your phone number.';
+    if (!bookingForm.date) return 'Choose a booking date.';
+    if (!bookingForm.time) return 'Choose a booking time.';
+    return '';
+  };
+
+  const handleBooking = async (event) => {
+    event.preventDefault();
+    const validationMessage = validateForm();
+    if (validationMessage) {
+      setNotice({ type: 'error', message: validationMessage });
       return;
     }
 
     setLoading(true);
+    setNotice(null);
 
     try {
-      const bookingData = {
+      await bookingsAPI.create({
         ...bookingForm,
-        services: selectedServices.map(s => s.name),
-        total: calculateTotal()
-      };
-
-      await bookingsAPI.create(bookingData);
-      
-      alert(`Booking confirmed for ${bookingForm.name}!\n\nServices: ${selectedServices.map(s => s.name).join(', ')}\nTotal: N$${calculateTotal()}`);
-      
-      // Reset form
-      setBookingForm({
-        name: '',
-        phone: '',
-        date: '',
-        time: ''
+        serviceIds: selectedServices.map((service) => service.id),
+        services: selectedServices.map((service) => service.name)
       });
+
+      setNotice({
+        type: 'success',
+        message: `Booking confirmed for ${bookingForm.name}. Total: N$${total}.`
+      });
+      setBookingForm({ name: '', phone: '', date: '', time: '' });
       setSelectedServices([]);
     } catch (error) {
-      console.error('Booking error:', error);
-      const serverMsg = error?.response?.data?.message || (error?.response?.data?.errors ? error.response.data.errors.map(e => e.msg).join(', ') : null);
-      alert(serverMsg ? `Error creating booking: ${serverMsg}` : 'Error creating booking. Please try again.');
+      setNotice({ type: 'error', message: getApiError(error) });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="container mx-auto px-6 py-12">
-      <div className="text-center mb-16">
-        <h2 className="text-4xl font-bold mb-4">Book Your Appointment</h2>
-        <p className="text-gray-600">Select your services and preferred time slot</p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        {/* Left Column: Services & Form */}
-        <div className="lg:col-span-2 space-y-8">
-          
-          {/* Services Selection */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-xl font-bold mb-6">Select Services</h3>
-            {Object.entries(services || {}).map(([category, serviceList]) => (
-              <div key={category} className="mb-8">
-                <h4 className="text-lg font-semibold mb-4 text-amber-600">{category}</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {serviceList.map((service) => {
-                    const isSelected = selectedServices.find(s => s.id === service.id);
-                    return (
-                      <div
-                        key={service.id}
-                        onClick={() => toggleService(service)}
-                        className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 ${
-                          isSelected 
-                            ? 'border-amber-500 bg-amber-50' 
-                            : 'border-gray-200 hover:border-amber-300'
-                        }`}
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <h5 className="font-bold text-lg">{service.name}</h5>
-                          {isSelected && (
-                            <div className="bg-amber-500 text-white p-1 rounded-full">
-                              <Check size={14} />
-                            </div>
-                          )}
-                        </div>
-                        <p className="text-gray-600 text-sm mb-3">{service.description}</p>
-                        <div className="flex justify-between items-center text-sm font-medium">
-                          <span className="text-amber-600">N${service.price}</span>
-                          <span className="text-gray-500 flex items-center gap-1">
-                            <Clock size={14} /> {service.duration}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+    <main className="bg-stone-50">
+      <section className="border-b border-stone-200 bg-white">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-10 sm:px-6 lg:px-8">
+          <button
+            type="button"
+            onClick={() => setCurrentPage('home')}
+            className="w-fit text-sm font-bold text-amber-700 hover:text-amber-800"
+          >
+            Back to Home
+          </button>
+          <div className="max-w-3xl">
+            <p className="text-sm font-bold uppercase text-amber-700">Appointments</p>
+            <h1 className="mt-2 text-4xl font-black text-stone-950 sm:text-5xl">Book your next cut</h1>
+            <p className="mt-4 text-base leading-7 text-stone-600">
+              Choose your services, pick a time during opening hours, and the shop will receive your confirmed appointment.
+            </p>
           </div>
+        </div>
+      </section>
 
-          {/* Booking Form */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-xl font-bold mb-6">Your Details</h3>
-            <div className="space-y-4">
+      <form onSubmit={handleBooking} className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_360px] lg:px-8">
+        <div className="space-y-8">
+          <section className="rounded-lg border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex items-center justify-between gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <p className="text-sm font-bold uppercase text-amber-700">Step 1</p>
+                <h2 className="mt-1 text-2xl font-black">Select services</h2>
+              </div>
+              <Scissors className="text-stone-400" size={24} />
+            </div>
+
+            <div className="mt-6 space-y-8">
+              {Object.entries(services || {}).map(([category, serviceList]) => (
+                <div key={category}>
+                  <h3 className="text-base font-black text-stone-800">{category}</h3>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    {serviceList.map((service) => {
+                      const isSelected = selectedServices.some((item) => item.id === service.id);
+                      return (
+                        <button
+                          type="button"
+                          key={service.id}
+                          onClick={() => toggleService(service)}
+                          aria-pressed={isSelected}
+                          className={`min-h-[150px] rounded-lg border-2 p-4 text-left transition ${
+                            isSelected
+                              ? 'border-amber-500 bg-amber-50'
+                              : 'border-stone-200 bg-white hover:border-amber-300'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <h4 className="text-lg font-black text-stone-950">{service.name}</h4>
+                            <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${
+                              isSelected ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-400'
+                            }`}>
+                              <Check size={16} />
+                            </span>
+                          </div>
+                          <p className="mt-2 min-h-[42px] text-sm leading-6 text-stone-600">{service.description}</p>
+                          <div className="mt-4 flex items-center justify-between text-sm font-bold">
+                            <span className="text-amber-700">N${service.price}</span>
+                            <span className="inline-flex items-center gap-1 text-stone-500">
+                              <Clock size={14} />
+                              {service.duration}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
+            <p className="text-sm font-bold uppercase text-amber-700">Step 2</p>
+            <h2 className="mt-1 text-2xl font-black">Your details</h2>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="text-sm font-bold text-stone-700">Full name</span>
                 <input
                   type="text"
                   value={bookingForm.name}
-                  onChange={(e) => setBookingForm({...bookingForm, name: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                  onChange={(event) => updateForm('name', event.target.value)}
+                  className="mt-2 w-full rounded-md border border-stone-300 px-4 py-3 text-base outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
                   placeholder="John Doe"
+                  autoComplete="name"
                 />
-              </div>
+              </label>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+              <label className="block">
+                <span className="text-sm font-bold text-stone-700">Phone</span>
                 <input
                   type="tel"
                   value={bookingForm.phone}
-                  onChange={(e) => setBookingForm({...bookingForm, phone: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-amber-500 transition"
-                  placeholder="+264 81 234 5678" />
-              </div>
+                  onChange={(event) => updateForm('phone', event.target.value)}
+                  className="mt-2 w-full rounded-md border border-stone-300 px-4 py-3 text-base outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                  placeholder="+264 81 234 5678"
+                  autoComplete="tel"
+                />
+              </label>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                  <input
-                    type="date"
-                    value={bookingForm.date}
-                    onChange={(e) => setBookingForm({...bookingForm, date: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-amber-500 transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
-                  <select
-                    value={bookingForm.time}
-                    onChange={(e) => setBookingForm({...bookingForm, time: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-amber-500 transition bg-white"
-                  >
-                    <option value="">Select time</option>
-                    <option value="09:00">9:00 AM</option>
-                    <option value="10:00">10:00 AM</option>
-                    <option value="11:00">11:00 AM</option>
-                    <option value="12:00">12:00 PM</option>
-                    <option value="13:00">1:00 PM</option>
-                    <option value="14:00">2:00 PM</option>
-                    <option value="15:00">3:00 PM</option>
-                    <option value="16:00">4:00 PM</option>
-                    <option value="17:00">5:00 PM</option>
-                  </select>
-                </div>
-              </div>
+              <label className="block">
+                <span className="text-sm font-bold text-stone-700">Date</span>
+                <input
+                  type="date"
+                  min={getTodayInputValue()}
+                  value={bookingForm.date}
+                  onChange={(event) => updateForm('date', event.target.value)}
+                  className="mt-2 w-full rounded-md border border-stone-300 px-4 py-3 text-base outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                />
+              </label>
 
-              <button
-                onClick={handleBooking}
-                disabled={loading}
-                className={`w-full py-4 rounded-lg font-bold text-lg transition shadow-lg mt-6 ${
-                  loading 
-                    ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-black text-white hover:bg-gray-800 hover:shadow-xl'
-                }`}
-              >
-                {loading ? 'Processing...' : 'Confirm Booking'}
-              </button>
+              <label className="block">
+                <span className="text-sm font-bold text-stone-700">Time</span>
+                <select
+                  value={bookingForm.time}
+                  onChange={(event) => updateForm('time', event.target.value)}
+                  className="mt-2 w-full rounded-md border border-stone-300 bg-white px-4 py-3 text-base outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                >
+                  <option value="">Select time</option>
+                  {timeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </label>
             </div>
-          </div>
-        </div>
 
-        {/* Right Column: Price Calculator (Sticky) */}
-        <div className="lg:col-span-1">
-          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 sticky top-6">
-            <h3 className="text-xl font-bold mb-6">Booking Summary</h3>
-            
-            {selectedServices.length === 0 ? (
-              <p className="text-gray-500 italic text-center py-8">Select services to see pricing</p>
-            ) : (
-              <div className="space-y-4">
-                {selectedServices.map((service, index) => (
-                  <div key={`${service.id}-${index}`} className="flex justify-between text-sm">
-                    <span className="text-gray-600">
-                      {service.name} <span className="text-xs text-gray-400">({service.duration})</span>
-                    </span>
-                    <span className="font-medium">N${service.price}</span>
-                  </div>
-                ))}
-                
-                <div className="h-px bg-gray-200 my-4"></div>
-                
-                <div className="flex justify-between text-xl font-bold">
-                  <span>Total</span>
-                  <span>N${calculateTotal()}</span>
-                </div>
-
-                <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-sm flex items-center gap-2 mt-4">
-                  <Clock size={16} />
-                  <span>
-                    Total Duration: {selectedServices.reduce((sum, s) => {
-                      const match = (s.duration || '').match(/(\d+)/);
-                      return sum + (match ? parseInt(match[1]) : 0);
-                    }, 0)} min
-                  </span>
-                </div>
+            {notice && (
+              <div className={`mt-6 flex items-start gap-3 rounded-md p-4 text-sm font-semibold ${
+                notice.type === 'success'
+                  ? 'bg-emerald-50 text-emerald-800'
+                  : 'bg-red-50 text-red-800'
+              }`}>
+                {notice.type === 'success' ? <Check size={18} /> : <AlertCircle size={18} />}
+                <span>{notice.message}</span>
               </div>
             )}
-          </div>
+          </section>
         </div>
 
-      </div>
-    </div>
+        <aside className="lg:sticky lg:top-24 lg:self-start">
+          <section className="rounded-lg border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
+            <h2 className="text-2xl font-black">Booking summary</h2>
+            {selectedServices.length === 0 ? (
+              <p className="mt-6 rounded-md bg-stone-100 px-4 py-8 text-center text-sm font-semibold text-stone-500">
+                Select services to build your appointment.
+              </p>
+            ) : (
+              <div className="mt-6 space-y-4">
+                {selectedServices.map((service) => (
+                  <div key={service.id} className="flex justify-between gap-4 text-sm">
+                    <div>
+                      <p className="font-bold text-stone-900">{service.name}</p>
+                      <p className="text-stone-500">{service.duration}</p>
+                    </div>
+                    <p className="font-black">N${service.price}</p>
+                  </div>
+                ))}
+                <div className="h-px bg-stone-200" />
+                <div className="flex justify-between text-xl font-black">
+                  <span>Total</span>
+                  <span>N${total}</span>
+                </div>
+                <p className="inline-flex items-center gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800">
+                  <Clock size={16} />
+                  Estimated duration: {duration} min
+                </p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="mt-6 w-full rounded-md bg-stone-950 px-5 py-4 text-base font-black text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-stone-400"
+            >
+              {loading ? 'Confirming...' : 'Confirm Booking'}
+            </button>
+          </section>
+        </aside>
+      </form>
+    </main>
   );
 };
 

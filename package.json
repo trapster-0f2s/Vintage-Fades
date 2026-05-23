@@ -4,10 +4,10 @@
   "description": "Vintage Fades Barbershop - Full Stack Application",
   "main": "index.js",
   "scripts": {
-    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
-    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm start\"",
-    "lint": "cd backend && npm run lint && cd ../frontend && npm run lint",
-    "lint:fix": "cd backend && npm run lint:fix && cd ../frontend && npm run lint:fix"
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install && cd ../admin && npm install",
+    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\" \"cd admin && npm run dev\"",
+    "build": "cd frontend && npm run build && cd ../admin && npm run build",
+    "audit": "npm audit --omit=dev && cd backend && npm audit --omit=dev && cd ../frontend && npm audit --omit=dev && cd ../admin && npm audit --omit=dev"
   },
   "keywords": ["barbershop", "booking", "react", "nodejs"],
   "author": "",

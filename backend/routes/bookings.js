@@ -1,171 +1,274 @@
 const express = require('express');
-const router = express.Router();
+const { body, param, query, validationResult } = require('express-validator');
+const mongoose = require('mongoose');
 const Booking = require('../models/booking');
-const { body, validationResult } = require('express-validator');
+const auth = require('../middleware/auth');
+const {
+  calculateTotal,
+  dateOnlyToDate,
+  isFutureDate,
+  isTimeWithinBusinessHours,
+  resolveSelectedServices
+} = require('../config/services');
 
-// Get all bookings (Admin only)
-// also remove any bookings whose date has already passed
-router.get('/', async (req, res) => {
+const router = express.Router();
+
+const timeValidator = body('time')
+  .matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  .withMessage('Choose a valid time')
+  .custom((time, { req }) => {
+    if (!req.body.date || !isTimeWithinBusinessHours(req.body.date, time)) {
+      throw new Error('Choose a time during opening hours');
+    }
+    return true;
+  });
+
+const serviceValidator = [
+  body('serviceIds')
+    .optional()
+    .isArray({ min: 1, max: 6 })
+    .withMessage('Choose between 1 and 6 services'),
+  body('serviceIds.*')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Invalid service selected'),
+  body('services')
+    .optional()
+    .isArray({ min: 1, max: 6 })
+    .withMessage('Choose between 1 and 6 services'),
+  body('services.*')
+    .optional()
+    .isString()
+    .trim()
+    .isLength({ min: 2, max: 80 })
+    .withMessage('Invalid service selected')
+];
+
+const bookingValidators = [
+  body('name')
+    .trim()
+    .isLength({ min: 2, max: 80 })
+    .withMessage('Enter a valid full name'),
+  body('phone')
+    .trim()
+    .matches(/^\+?[0-9\s()-]{7,24}$/)
+    .withMessage('Enter a valid phone number'),
+  body('date')
+    .matches(/^\d{4}-\d{2}-\d{2}$/)
+    .withMessage('Choose a valid date')
+    .custom((date) => {
+      if (!isFutureDate(date)) {
+        throw new Error('Choose today or a future date');
+      }
+      return true;
+    }),
+  timeValidator,
+  ...serviceValidator,
+  body().custom((value) => {
+    if (!Array.isArray(value.serviceIds) && !Array.isArray(value.services)) {
+      throw new Error('Choose at least one service');
+    }
+    return true;
+  })
+];
+
+const optionalBookingValidators = [
+  body('name').optional().trim().isLength({ min: 2, max: 80 }),
+  body('phone').optional().trim().matches(/^\+?[0-9\s()-]{7,24}$/),
+  body('date').optional().matches(/^\d{4}-\d{2}-\d{2}$/),
+  body('time').optional().matches(/^([01]\d|2[0-3]):[0-5]\d$/),
+  ...serviceValidator
+];
+
+const validateObjectId = param('id').custom((value) => {
+  if (!mongoose.Types.ObjectId.isValid(value)) {
+    throw new Error('Invalid booking ID');
+  }
+  return true;
+});
+
+const sendValidationErrors = (req, res) => {
+  const errors = validationResult(req);
+  if (errors.isEmpty()) {
+    return false;
+  }
+
+  res.status(400).json({ errors: errors.array() });
+  return true;
+};
+
+const buildServicePayload = ({ serviceIds, services }) => {
+  const selectedServices = resolveSelectedServices({ serviceIds, services });
+  if (!selectedServices || selectedServices.length === 0) {
+    return null;
+  }
+
+  return {
+    serviceIds: selectedServices.map((service) => service.id),
+    services: selectedServices.map((service) => service.name),
+    total: calculateTotal(selectedServices)
+  };
+};
+
+router.get('/stats/summary', auth, async (req, res) => {
   try {
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    // delete bookings before today
-    await Booking.deleteMany({ date: { $lt: today } });
+    const [total, confirmed, completed, cancelled, bookings] = await Promise.all([
+      Booking.countDocuments(),
+      Booking.countDocuments({ status: 'confirmed' }),
+      Booking.countDocuments({ status: 'completed' }),
+      Booking.countDocuments({ status: 'cancelled' }),
+      Booking.find()
+    ]);
 
-    const bookings = await Booking.find().sort({ date: 1, time: 1 });
-    res.json(bookings);
+    const totalRevenue = bookings
+      .filter((booking) => booking.status !== 'cancelled')
+      .reduce((sum, booking) => sum + booking.total, 0);
+
+    res.json({
+      total,
+      confirmed,
+      completed,
+      cancelled,
+      totalRevenue
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Get booking by ID
-router.get('/:id', async (req, res) => {
+router.get('/', auth, [
+  query('includePast').optional().isBoolean().toBoolean()
+], async (req, res) => {
   try {
+    if (sendValidationErrors(req, res)) return;
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const filter = req.query.includePast ? {} : { date: { $gte: today } };
+    const bookings = await Booking.find(filter).sort({ date: 1, time: 1, createdAt: -1 });
+
+    res.json(bookings);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/:id', auth, [validateObjectId], async (req, res) => {
+  try {
+    if (sendValidationErrors(req, res)) return;
+
     const booking = await Booking.findById(req.params.id);
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
-    res.json(booking);
+    return res.json(booking);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    return res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Create new booking
-router.post('/', [
-  body('name').notEmpty().trim().escape(),
-  // phone must be integer
-  body('phone').notEmpty().isInt().toInt(),
-  body('date').isISO8601(),
-  body('time').notEmpty(),
-  body('services').isArray({ min: 1 }),
-  body('total').isNumeric()
-], async (req, res) => {
+router.post('/', bookingValidators, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+    if (sendValidationErrors(req, res)) return;
+
+    const servicePayload = buildServicePayload(req.body);
+    if (!servicePayload) {
+      return res.status(400).json({ message: 'Invalid service selection' });
     }
 
-    const { name, phone, date, time, services, total } = req.body;
-
     const booking = new Booking({
-      name,
-      phone,
-      date,
-      time,
-      services,
-      total,
-      // status defaults to confirmed via schema
+      name: req.body.name,
+      phone: req.body.phone,
+      date: dateOnlyToDate(req.body.date),
+      time: req.body.time,
+      ...servicePayload
     });
 
     await booking.save();
-    res.status(201).json({ message: 'Booking created successfully', booking });
+    return res.status(201).json({ message: 'Booking created successfully', booking });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    return res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Update booking status (Admin only)
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', auth, [
+  validateObjectId,
+  body('status').isIn(['confirmed', 'completed', 'cancelled']).withMessage('Invalid status')
+], async (req, res) => {
   try {
-    const { status } = req.body;
-    
-    if (!['confirmed', 'completed', 'cancelled'].includes(status)) {
-      return res.status(400).json({ message: 'Invalid status' });
-    }
+    if (sendValidationErrors(req, res)) return;
 
     const booking = await Booking.findByIdAndUpdate(
       req.params.id,
-      { status },
-      { new: true }
+      { status: req.body.status },
+      { new: true, runValidators: true }
     );
 
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
 
-    res.json({ message: 'Booking status updated', booking });
+    return res.json({ message: 'Booking status updated', booking });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    return res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Update booking details (Admin only)
-router.put('/:id', [
-  body('name').optional().notEmpty().trim().escape(),
-  body('phone').optional().notEmpty().isInt().toInt(),
-  body('date').optional().isISO8601(),
-  body('time').optional().notEmpty(),
-  body('services').optional().isArray({ min: 1 }),
-  body('total').optional().isNumeric()
+router.put('/:id', auth, [
+  validateObjectId,
+  ...optionalBookingValidators
 ], async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
+    if (sendValidationErrors(req, res)) return;
 
     const updateData = {};
-    const allowedFields = ['name', 'phone', 'date', 'time', 'services', 'total'];
-    allowedFields.forEach(field => {
+    ['name', 'phone', 'time'].forEach((field) => {
       if (req.body[field] !== undefined) {
         updateData[field] = req.body[field];
       }
     });
 
+    if (req.body.date !== undefined) {
+      updateData.date = dateOnlyToDate(req.body.date);
+    }
+
+    if (req.body.serviceIds !== undefined || req.body.services !== undefined) {
+      const servicePayload = buildServicePayload(req.body);
+      if (!servicePayload) {
+        return res.status(400).json({ message: 'Invalid service selection' });
+      }
+      Object.assign(updateData, servicePayload);
+    }
+
     const booking = await Booking.findByIdAndUpdate(
       req.params.id,
       updateData,
-      { new: true }
+      { new: true, runValidators: true }
     );
 
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
 
-    res.json({ message: 'Booking updated successfully', booking });
+    return res.json({ message: 'Booking updated successfully', booking });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    return res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Delete booking (Admin only)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, [validateObjectId], async (req, res) => {
   try {
+    if (sendValidationErrors(req, res)) return;
+
     const booking = await Booking.findByIdAndDelete(req.params.id);
     
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
 
-    res.json({ message: 'Booking deleted successfully' });
+    return res.json({ message: 'Booking deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
-
-// Get booking statistics (Admin only)
-router.get('/stats/summary', async (req, res) => {
-  try {
-    const total = await Booking.countDocuments();
-    const confirmed = await Booking.countDocuments({ status: 'confirmed' });
-    const pending = await Booking.countDocuments({ status: 'pending' });
-    const cancelled = await Booking.countDocuments({ status: 'cancelled' });
-    
-    const bookings = await Booking.find();
-    const totalRevenue = bookings.reduce((sum, booking) => sum + booking.total, 0);
-
-    res.json({
-      total,
-      confirmed,
-      pending,
-      cancelled,
-      totalRevenue
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    return res.status(500).json({ message: 'Server error' });
   }
 });
 

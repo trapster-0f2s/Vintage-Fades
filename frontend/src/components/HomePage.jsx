@@ -1,98 +1,150 @@
 import React from 'react';
-import { Phone, Mail, MapPin, Clock } from 'lucide-react';
+import { Clock, Mail, MapPin, Phone, Star } from 'lucide-react';
 
-const HomePage = ({ setCurrentPage, services = {} }) => { // Default empty object for safety
+const heroImageUrl = 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=1800&q=85';
+
+const HomePage = ({ setCurrentPage, services = {}, servicesNotice = '' }) => {
+  const featuredServices = Object.entries(services).flatMap(([category, serviceList]) =>
+    serviceList.slice(0, 2).map((service) => ({ ...service, category }))
+  ).slice(0, 6);
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white p-8 space-y-16"> {/* Added responsive container */}
-      
-      {/* Hero Section */}
-      <section className="text-center py-20">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-            Welcome to<br />
-            <span className="text-amber-400">Vintage Fades Barbershop</span>
-          </h1>
-          <p className="text-xl md:text-2xl mb-8 max-w-2xl mx-auto leading-relaxed">
-            Step into Vintage Fades, where precision meets style. Our barbers are dedicated to providing contemporary haircuts and grooming services in a relaxed, welcoming atmosphere. Experience the difference today!
-          </p>
-          <button 
-            onClick={() => setCurrentPage('booking')}
-            className="bg-amber-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-amber-700 transition"
-          >
-            Book Now
-          </button>
+    <main>
+      <section
+        className="relative min-h-[calc(100vh-72px)] overflow-hidden bg-stone-950 text-white"
+        style={{
+          backgroundImage: `linear-gradient(90deg, rgba(12, 10, 9, 0.9), rgba(12, 10, 9, 0.66), rgba(12, 10, 9, 0.28)), url(${heroImageUrl})`,
+          backgroundPosition: 'center',
+          backgroundSize: 'cover'
+        }}
+      >
+        <div className="mx-auto flex min-h-[calc(100vh-72px)] max-w-7xl items-center px-4 py-16 sm:px-6 lg:px-8">
+          <div className="max-w-3xl">
+            <p className="mb-4 inline-flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-amber-200 ring-1 ring-white/15">
+              <Star size={16} />
+              Precision cuts in Windhoek
+            </p>
+            <h1 className="text-5xl font-black leading-tight sm:text-6xl lg:text-7xl">
+              Vintage Fades Barbershop
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-stone-100 sm:text-xl">
+              Sharp fades, clean lineups, beard work, colour, facials, and combo services delivered in a polished shop experience.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => setCurrentPage('booking')}
+                className="rounded-md bg-amber-400 px-6 py-3 text-base font-black text-stone-950 transition hover:bg-amber-300"
+              >
+                Book an Appointment
+              </button>
+              <a
+                href="tel:+264814748665"
+                className="rounded-md bg-white/10 px-6 py-3 text-base font-bold text-white ring-1 ring-white/20 transition hover:bg-white/20"
+              >
+                Call the Shop
+              </a>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* About Section */}
-      <section className="max-w-6xl mx-auto text-center">
-        <h2 className="text-4xl font-bold mb-8">Unleash Your Style with Vintage Fades</h2>
-        <p className="text-xl mb-12 max-w-3xl mx-auto leading-relaxed">
-          At Vintage Fades, we blend traditional barbering with modern techniques to deliver exceptional grooming experiences. Our team is dedicated to providing personalized consultations and precise haircuts that reflect your unique style and preferences. Step into our studio and discover the difference.
-        </p>
-        
+      <section className="border-b border-stone-200 bg-white">
+        <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:grid-cols-3 sm:px-6 lg:px-8">
+          <div>
+            <p className="text-sm font-semibold uppercase text-stone-500">Location</p>
+            <p className="mt-1 text-lg font-bold">26 Van Rhijn Street</p>
+          </div>
+          <div>
+            <p className="text-sm font-semibold uppercase text-stone-500">Hours</p>
+            <p className="mt-1 text-lg font-bold">Mon-Fri 9am-8pm</p>
+          </div>
+          <div>
+            <p className="text-sm font-semibold uppercase text-stone-500">Contact</p>
+            <p className="mt-1 text-lg font-bold">+264 81 474 8665</p>
+          </div>
+        </div>
       </section>
 
-      {/* Services Preview */}
-      <section className="max-w-6xl mx-auto">
-        <h2 className="text-4xl font-bold text-center mb-12">Our Premium Services</h2>
-        {Object.entries(services).map(([category, serviceList]) => (
-          <div key={category} className="mb-12">
-            <h3 className="text-2xl font-bold mb-6 text-amber-400">{category}</h3>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {serviceList.slice(0, 4).map((service) => (
-                <div key={service.id} className="p-6 bg-gray-800/50 rounded-xl hover:bg-gray-700 transition">
-                  <h4 className="text-xl font-bold mb-2">{service.name}</h4>
-                  <p className="text-gray-300 mb-4">{service.description}</p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-2xl font-bold text-amber-400">N${service.price}</span>
-                    <span className="text-sm text-gray-400">{service.duration}</span>
+      <section className="bg-stone-50 py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <p className="text-sm font-bold uppercase text-amber-700">Services</p>
+              <h2 className="mt-2 text-4xl font-black text-stone-950">Built for a clean finish</h2>
+            </div>
+            {servicesNotice && (
+              <p className="max-w-md rounded-md bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+                {servicesNotice}
+              </p>
+            )}
+          </div>
+
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {featuredServices.map((service) => (
+              <div key={`${service.category}-${service.id}`} className="rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-bold uppercase text-stone-500">{service.category}</p>
+                    <h3 className="mt-2 text-xl font-black">{service.name}</h3>
                   </div>
+                  <p className="rounded-md bg-stone-950 px-3 py-2 text-lg font-black text-white">N${service.price}</p>
                 </div>
-              ))}
-            </div>
+                <p className="mt-3 text-sm leading-6 text-stone-600">{service.description}</p>
+                <p className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-amber-700">
+                  <Clock size={16} />
+                  {service.duration}
+                </p>
+              </div>
+            ))}
           </div>
-        ))}
-        <div className="text-center">
-          <button 
-            onClick={() => setCurrentPage('booking')}
-            className="bg-amber-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-amber-700 transition"
-          >
-            View All Services & Book
-          </button>
+
+          <div className="mt-10">
+            <button
+              type="button"
+              onClick={() => setCurrentPage('booking')}
+              className="rounded-md bg-stone-950 px-6 py-3 text-base font-black text-white transition hover:bg-stone-800"
+            >
+              View All Services and Book
+            </button>
+          </div>
         </div>
       </section>
 
-      {/* Contact Section */}
-      <section className="max-w-4xl mx-auto text-center">
-        <h2 className="text-4xl font-bold mb-8">Contact Us</h2>
-        <p className="text-xl mb-12 max-w-2xl mx-auto leading-relaxed">
-          Reach out to us for appointments, inquiries, or feedback. We're here to keep you looking sharp!
-        </p>
-        <div className="grid md:grid-cols-2 gap-8 mb-12">
-          <div className="flex flex-col items-center p-6 bg-gray-800/50 rounded-xl space-y-4">
-            <Mail size={32} className="text-amber-400" />
-            <a href="mailto:vintagebarber.na@gmail.com" className="text-xl font-semibold hover:text-amber-400 transition">vintagebarber.na@gmail.com </a>
+      <section className="bg-white py-16">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[1fr_1.15fr] lg:px-8">
+          <div>
+            <p className="text-sm font-bold uppercase text-amber-700">Visit</p>
+            <h2 className="mt-2 text-4xl font-black text-stone-950">Walk in sharp, leave sharper</h2>
+            <p className="mt-4 max-w-xl text-base leading-7 text-stone-600">
+              Book ahead to lock in your preferred time, or get in touch for appointments, student pricing, kids cuts, and grooming combos.
+            </p>
           </div>
-          <div className="flex flex-col items-center p-6 bg-gray-800/50 rounded-xl space-y-4">
-            <Phone size={32} className="text-amber-400" />
-            <a href="tel:+264814748665" className="text-xl font-semibold hover:text-amber-400 transition">+264 81 474 8665</a>
-          </div>
-          <div className="flex flex-col items-center p-6 bg-gray-800/50 rounded-xl space-y-4 md:col-span-2">
-            <MapPin size={32} className="text-amber-400" />
-            <p className="text-xl font-semibold">26 Van Rhijn Street</p>
-          </div>
-          <div className="flex flex-col items-center p-6 bg-gray-800/50 rounded-xl space-y-4 md:col-span-2">
-            <Clock size={32} className="text-amber-400" />
-            <div className="space-y-1 text-left">
-              <p>Mon-Fri: 9am - 8pm</p>
-              <p>Sat: 9am - 6pm</p>
-              <p>Sun: 10am - 5pm</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <a href="mailto:vintagebarber.na@gmail.com" className="rounded-lg border border-stone-200 p-5 transition hover:border-amber-400">
+              <Mail className="text-amber-700" size={26} />
+              <p className="mt-4 text-sm font-semibold text-stone-500">Email</p>
+              <p className="mt-1 break-words font-bold">vintagebarber.na@gmail.com</p>
+            </a>
+            <a href="tel:+264814748665" className="rounded-lg border border-stone-200 p-5 transition hover:border-amber-400">
+              <Phone className="text-amber-700" size={26} />
+              <p className="mt-4 text-sm font-semibold text-stone-500">Phone</p>
+              <p className="mt-1 font-bold">+264 81 474 8665</p>
+            </a>
+            <div className="rounded-lg border border-stone-200 p-5">
+              <MapPin className="text-amber-700" size={26} />
+              <p className="mt-4 text-sm font-semibold text-stone-500">Address</p>
+              <p className="mt-1 font-bold">26 Van Rhijn Street</p>
+            </div>
+            <div className="rounded-lg border border-stone-200 p-5">
+              <Clock className="text-amber-700" size={26} />
+              <p className="mt-4 text-sm font-semibold text-stone-500">Opening Hours</p>
+              <p className="mt-1 font-bold">Mon-Fri 9am-8pm</p>
+              <p className="font-bold">Sat 9am-6pm, Sun 10am-5pm</p>
             </div>
           </div>
         </div>
       </section>
-      
     </main>
   );
 };

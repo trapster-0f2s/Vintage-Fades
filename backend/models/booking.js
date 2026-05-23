@@ -4,13 +4,14 @@ const BookingSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
+    maxlength: 80
   },
-  // `email` was removed per request; only phone number is stored now.
   phone: {
-    type: Number,
+    type: String,
     required: true,
-    // we'll enforce integer values in validation
+    trim: true,
+    maxlength: 24
   },
   date: {
     type: Date,
@@ -24,19 +25,23 @@ const BookingSchema = new mongoose.Schema({
     type: String,
     required: true
   }],
+  serviceIds: [{
+    type: Number
+  }],
   total: {
     type: Number,
-    required: true
+    required: true,
+    min: 0
   },
   status: {
     type: String,
     enum: ['confirmed', 'completed', 'cancelled'],
     default: 'confirmed'
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
   }
+}, {
+  timestamps: true
 });
+
+BookingSchema.index({ date: 1, time: 1, status: 1 });
 
 module.exports = mongoose.model('Booking', BookingSchema);

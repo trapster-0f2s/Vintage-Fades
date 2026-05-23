@@ -1,10 +1,8 @@
 import axios from 'axios';
 
-const RAW_API_URL = process.env.REACT_APP_API_URL || 'https://vintage-fades.onrender.com';
+const RAW_API_URL = import.meta.env.VITE_API_URL || 'https://vintage-fades.onrender.com';
 
 const API_URL = RAW_API_URL.replace(/\/+$/, '') + '/api';
-
-console.info('API base URL:', API_URL);
 
 const api = axios.create({
   baseURL: API_URL,
@@ -12,6 +10,10 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+export const servicesAPI = {
+  getAll: () => api.get('/services'),
+};
 
 // Bookings API
 export const bookingsAPI = {
