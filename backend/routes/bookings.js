@@ -1,13 +1,13 @@
 const express = require('express');
 const { body, param, query, validationResult } = require('express-validator');
-const mongoose = require('mongoose');
 const Booking = require('../models/booking');
 const auth = require('../middleware/auth');
 const {
-  calculateTotal,
+  calculateBookingPricing,
   dateOnlyToDate,
   isFutureDate,
   isTimeWithinBusinessHours,
+  monthlySubscription,
   resolveSelectedServices
 } = require('../config/services');
 
@@ -44,6 +44,24 @@ const serviceValidator = [
     .withMessage('Invalid service selected')
 ];
 
+const subscriptionValidator = [
+  body('subscriptionStatus')
+    .optional()
+    .isIn(['none', 'active', 'signup'])
+    .withMessage('Choose a valid subscription option'),
+  body('subscriptionReference')
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ max: 80 })
+    .withMessage('Subscription reference is too long'),
+  body('subscriptionReference').custom((value, { req }) => {
+    if (req.body.subscriptionStatus === 'active' && !String(value || '').trim()) {
+      throw new Error('Enter the phone or name linked to your monthly subscription');
+    }
+    return true;
+  })
+];
+
 const bookingValidators = [
   body('name')
     .trim()
@@ -64,6 +82,7 @@ const bookingValidators = [
     }),
   timeValidator,
   ...serviceValidator,
+  ...subscriptionValidator,
   body().custom((value) => {
     if (!Array.isArray(value.serviceIds) && !Array.isArray(value.services)) {
       throw new Error('Choose at least one service');
@@ -77,11 +96,14 @@ const optionalBookingValidators = [
   body('phone').optional().trim().matches(/^\+?[0-9\s()-]{7,24}$/),
   body('date').optional().matches(/^\d{4}-\d{2}-\d{2}$/),
   body('time').optional().matches(/^([01]\d|2[0-3]):[0-5]\d$/),
-  ...serviceValidator
+  ...serviceValidator,
+  ...subscriptionValidator
 ];
 
-const validateObjectId = param('id').custom((value) => {
-  if (!mongoose.Types.ObjectId.isValid(value)) {
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const validateBookingId = param('id').custom((value) => {
+  if (!uuidPattern.test(value)) {
     throw new Error('Invalid booking ID');
   }
   return true;
@@ -97,26 +119,56 @@ const sendValidationErrors = (req, res) => {
   return true;
 };
 
-const buildServicePayload = ({ serviceIds, services }) => {
+const getSubscriptionStatus = (value) => (
+  ['active', 'signup'].includes(value) ? value : 'none'
+);
+
+const buildServicePayload = ({
+  serviceIds,
+  services,
+  subscriptionStatus,
+  subscriptionReference
+}) => {
   const selectedServices = resolveSelectedServices({ serviceIds, services });
   if (!selectedServices || selectedServices.length === 0) {
-    return null;
+    return { error: 'Invalid service selection' };
+  }
+
+  const resolvedSubscriptionStatus = getSubscriptionStatus(subscriptionStatus);
+  const pricing = calculateBookingPricing(selectedServices, resolvedSubscriptionStatus);
+
+  if (resolvedSubscriptionStatus !== 'none' && pricing.subscriptionDiscount === 0) {
+    return {
+      error: 'Monthly subscriptions can only be used with a haircut, fade, lineup, trim, or bald service.'
+    };
   }
 
   return {
-    serviceIds: selectedServices.map((service) => service.id),
-    services: selectedServices.map((service) => service.name),
-    total: calculateTotal(selectedServices)
+    payload: {
+      serviceIds: selectedServices.map((service) => service.id),
+      services: selectedServices.map((service) => service.name),
+      subtotal: pricing.subtotal,
+      subscriptionStatus: resolvedSubscriptionStatus,
+      subscriptionReference: resolvedSubscriptionStatus === 'active'
+        ? String(subscriptionReference || '').trim()
+        : '',
+      subscriptionPlan: resolvedSubscriptionStatus === 'none' ? '' : monthlySubscription.name,
+      subscriptionCoveredService: pricing.coveredService?.name || '',
+      subscriptionDiscount: pricing.subscriptionDiscount,
+      subscriptionCharge: pricing.subscriptionCharge,
+      total: pricing.total
+    }
   };
 };
 
 router.get('/stats/summary', auth, async (req, res) => {
   try {
-    const [total, confirmed, completed, cancelled, bookings] = await Promise.all([
+    const [total, confirmed, completed, cancelled, monthlySubscriptions, bookings] = await Promise.all([
       Booking.countDocuments(),
       Booking.countDocuments({ status: 'confirmed' }),
       Booking.countDocuments({ status: 'completed' }),
       Booking.countDocuments({ status: 'cancelled' }),
+      Booking.countDocuments({ subscriptionStatus: { $in: ['active', 'signup'] } }),
       Booking.find()
     ]);
 
@@ -129,6 +181,7 @@ router.get('/stats/summary', auth, async (req, res) => {
       confirmed,
       completed,
       cancelled,
+      monthlySubscriptions,
       totalRevenue
     });
   } catch (error) {
@@ -153,7 +206,7 @@ router.get('/', auth, [
   }
 });
 
-router.get('/:id', auth, [validateObjectId], async (req, res) => {
+router.get('/:id', auth, [validateBookingId], async (req, res) => {
   try {
     if (sendValidationErrors(req, res)) return;
 
@@ -172,8 +225,8 @@ router.post('/', bookingValidators, async (req, res) => {
     if (sendValidationErrors(req, res)) return;
 
     const servicePayload = buildServicePayload(req.body);
-    if (!servicePayload) {
-      return res.status(400).json({ message: 'Invalid service selection' });
+    if (servicePayload.error) {
+      return res.status(400).json({ message: servicePayload.error });
     }
 
     const booking = new Booking({
@@ -181,7 +234,7 @@ router.post('/', bookingValidators, async (req, res) => {
       phone: req.body.phone,
       date: dateOnlyToDate(req.body.date),
       time: req.body.time,
-      ...servicePayload
+      ...servicePayload.payload
     });
 
     await booking.save();
@@ -192,7 +245,7 @@ router.post('/', bookingValidators, async (req, res) => {
 });
 
 router.patch('/:id/status', auth, [
-  validateObjectId,
+  validateBookingId,
   body('status').isIn(['confirmed', 'completed', 'cancelled']).withMessage('Invalid status')
 ], async (req, res) => {
   try {
@@ -215,7 +268,7 @@ router.patch('/:id/status', auth, [
 });
 
 router.put('/:id', auth, [
-  validateObjectId,
+  validateBookingId,
   ...optionalBookingValidators
 ], async (req, res) => {
   try {
@@ -232,12 +285,33 @@ router.put('/:id', auth, [
       updateData.date = dateOnlyToDate(req.body.date);
     }
 
-    if (req.body.serviceIds !== undefined || req.body.services !== undefined) {
-      const servicePayload = buildServicePayload(req.body);
-      if (!servicePayload) {
-        return res.status(400).json({ message: 'Invalid service selection' });
+    const hasServiceUpdate = req.body.serviceIds !== undefined || req.body.services !== undefined;
+    const hasSubscriptionUpdate = (
+      req.body.subscriptionStatus !== undefined ||
+      req.body.subscriptionReference !== undefined
+    );
+
+    if (hasServiceUpdate || hasSubscriptionUpdate) {
+      const existingBooking = await Booking.findById(req.params.id);
+      if (!existingBooking) {
+        return res.status(404).json({ message: 'Booking not found' });
       }
-      Object.assign(updateData, servicePayload);
+
+      const servicePayload = buildServicePayload({
+        serviceIds: hasServiceUpdate ? req.body.serviceIds : existingBooking.serviceIds,
+        services: hasServiceUpdate ? req.body.services : existingBooking.services,
+        subscriptionStatus: hasSubscriptionUpdate
+          ? req.body.subscriptionStatus
+          : existingBooking.subscriptionStatus,
+        subscriptionReference: hasSubscriptionUpdate
+          ? req.body.subscriptionReference
+          : existingBooking.subscriptionReference
+      });
+
+      if (servicePayload.error) {
+        return res.status(400).json({ message: servicePayload.error });
+      }
+      Object.assign(updateData, servicePayload.payload);
     }
 
     const booking = await Booking.findByIdAndUpdate(
@@ -256,7 +330,7 @@ router.put('/:id', auth, [
   }
 });
 
-router.delete('/:id', auth, [validateObjectId], async (req, res) => {
+router.delete('/:id', auth, [validateBookingId], async (req, res) => {
   try {
     if (sendValidationErrors(req, res)) return;
 

@@ -41,9 +41,8 @@ app.use('/api/auth', rateLimit({
   legacyHeaders: false
 }));
 
-// Connect to MongoDB
+// Connect to Supabase
 const connectDB = require('./config/db');
-connectDB();
 
 // Routes
 app.use('/api/services', require('./routes/services'));
@@ -61,6 +60,9 @@ app.use((req, res) => {
 });
 
 app.use((error, req, res, next) => {
+  // Express identifies error middleware by its four-argument signature.
+  void next;
+
   if (error.message === 'Not allowed by CORS') {
     return res.status(403).json({ message: 'Origin is not allowed' });
   }
@@ -68,16 +70,24 @@ app.use((error, req, res, next) => {
   return res.status(500).json({ message: 'Server error' });
 });
 
-// Start server
-const PORT = process.env.PORT || 5000;
-const HOST = process.env.HOST || '0.0.0.0';
-const server = app.listen(PORT, HOST, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Server listening on ${server.address().address}:${server.address().port}`);
-});
+const startServer = async () => {
+  await connectDB();
 
-process.on('SIGTERM', () => {
-  server.close(() => {
-    console.log('Server closed');
+  const PORT = process.env.PORT || 5000;
+  const HOST = process.env.HOST || '0.0.0.0';
+  const server = app.listen(PORT, HOST, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Server listening on ${server.address().address}:${server.address().port}`);
   });
+
+  process.on('SIGTERM', () => {
+    server.close(() => {
+      console.log('Server closed');
+    });
+  });
+};
+
+startServer().catch((error) => {
+  console.error('Startup error:', error.message);
+  process.exit(1);
 });

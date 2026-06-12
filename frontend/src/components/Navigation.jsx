@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarCheck, Scissors } from 'lucide-react';
+import { CalendarCheck, Instagram } from 'lucide-react';
 
 const Navigation = ({ currentPage, setCurrentPage }) => {
   const navButtonClass = (page) => (
@@ -19,9 +19,11 @@ const Navigation = ({ currentPage, setCurrentPage }) => {
           className="flex items-center gap-2 text-left text-xl font-black tracking-normal"
           aria-label="Go to Vintage Fades home"
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-md bg-amber-400 text-stone-950">
-            <Scissors size={22} />
-          </span>
+          <img
+            src="/vintage-fades-logo.svg"
+            alt="Vintage Fades logo"
+            className="h-11 w-11 rounded-md object-cover ring-1 ring-amber-300/50"
+          />
           <span>Vintage Fades</span>
         </button>
 
@@ -40,6 +42,15 @@ const Navigation = ({ currentPage, setCurrentPage }) => {
           >
             Services
           </button>
+          <a
+            href="https://www.instagram.com/vintage_fades_barbershop/"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-stone-200 transition hover:bg-white/10 hover:text-white"
+          >
+            <Instagram size={16} />
+            Instagram
+          </a>
           <button
             type="button"
             onClick={() => setCurrentPage('booking')}

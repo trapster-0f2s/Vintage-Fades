@@ -1,7 +1,23 @@
 import React from 'react';
-import { Clock, Mail, MapPin, Phone, Star } from 'lucide-react';
+import { CalendarCheck, Clock, Instagram, Mail, MapPin, Phone, Star } from 'lucide-react';
+import { monthlySubscription } from '../data/services';
 
 const heroImageUrl = 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=1800&q=85';
+
+const instagramFeatures = [
+  {
+    title: 'Crispy and classic fades',
+    copy: 'Fresh fades, tight blends, and clean finishes inspired by the shop reels and cut posts.'
+  },
+  {
+    title: 'Facials with the finish',
+    copy: 'Steam and facial add-ons are highlighted as part of the polished grooming experience.'
+  },
+  {
+    title: 'Kids and back-to-school cuts',
+    copy: 'Student and kids services are easy to book for school-ready cuts and quick lineups.'
+  }
+];
 
 const HomePage = ({ setCurrentPage, services = {}, servicesNotice = '' }) => {
   const featuredServices = Object.entries(services).flatMap(([category, serviceList]) =>
@@ -22,7 +38,7 @@ const HomePage = ({ setCurrentPage, services = {}, servicesNotice = '' }) => {
           <div className="max-w-3xl">
             <p className="mb-4 inline-flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-amber-200 ring-1 ring-white/15">
               <Star size={16} />
-              Precision cuts in Windhoek
+              LOOK GOOD. FEEL GOOD. STAY VINTAGE.
             </p>
             <h1 className="text-5xl font-black leading-tight sm:text-6xl lg:text-7xl">
               Vintage Fades Barbershop
@@ -44,6 +60,15 @@ const HomePage = ({ setCurrentPage, services = {}, servicesNotice = '' }) => {
               >
                 Call the Shop
               </a>
+              <a
+                href="https://www.instagram.com/vintage_fades_barbershop/"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-md bg-white/10 px-6 py-3 text-base font-bold text-white ring-1 ring-white/20 transition hover:bg-white/20"
+              >
+                <Instagram size={18} />
+                Instagram
+              </a>
             </div>
           </div>
         </div>
@@ -62,6 +87,36 @@ const HomePage = ({ setCurrentPage, services = {}, servicesNotice = '' }) => {
           <div>
             <p className="text-sm font-semibold uppercase text-stone-500">Contact</p>
             <p className="mt-1 text-lg font-bold">+264 81 474 8665</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white py-16">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
+          <div>
+            <p className="text-sm font-bold uppercase text-amber-700">From Instagram</p>
+            <h2 className="mt-2 text-4xl font-black text-stone-950">Fresh cuts, clean energy</h2>
+            <p className="mt-4 max-w-xl text-base leading-7 text-stone-600">
+              The public profile points to a sharp Windhoek shop identity: fresh fades, facials, kids cuts, and the Vintage Fades promise to look good, feel good, and stay vintage.
+            </p>
+            <a
+              href="https://www.instagram.com/vintage_fades_barbershop/"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-6 inline-flex items-center gap-2 rounded-md bg-stone-950 px-5 py-3 text-sm font-black text-white transition hover:bg-stone-800"
+            >
+              <Instagram size={17} />
+              Follow @vintage_fades_barbershop
+            </a>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            {instagramFeatures.map((feature) => (
+              <div key={feature.title} className="rounded-lg border border-stone-200 p-5">
+                <p className="text-lg font-black text-stone-950">{feature.title}</p>
+                <p className="mt-3 text-sm leading-6 text-stone-600">{feature.copy}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -107,6 +162,46 @@ const HomePage = ({ setCurrentPage, services = {}, servicesNotice = '' }) => {
             >
               View All Services and Book
             </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-stone-950 py-16 text-white">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[1fr_1fr] lg:px-8">
+          <div>
+            <p className="text-sm font-bold uppercase text-amber-300">Monthly subscription</p>
+            <h2 className="mt-2 text-4xl font-black">{monthlySubscription.name}</h2>
+            <p className="mt-4 max-w-xl text-base leading-7 text-stone-200">
+              For clients who keep the cut fresh all month. The pass covers one eligible haircut, fade, lineup, trim, or bald value per booking; add-ons such as beard, colour, facial, enhancement, and line design remain payable.
+            </p>
+            <p className="mt-6 inline-flex rounded-md bg-amber-400 px-4 py-3 text-2xl font-black text-stone-950">
+              N${monthlySubscription.price}/month
+            </p>
+          </div>
+
+          <div className="rounded-lg bg-white p-6 text-stone-950">
+            <p className="text-sm font-bold uppercase text-amber-700">How to sign up</p>
+            <ol className="mt-4 list-decimal space-y-3 pl-5 text-sm font-semibold leading-6 text-stone-700">
+              {monthlySubscription.signupSteps.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => setCurrentPage('booking')}
+                className="inline-flex items-center gap-2 rounded-md bg-stone-950 px-5 py-3 text-sm font-black text-white transition hover:bg-stone-800"
+              >
+                <CalendarCheck size={17} />
+                Book and Sign Up
+              </button>
+              <a
+                href="tel:+264814748665"
+                className="rounded-md bg-stone-100 px-5 py-3 text-sm font-black text-stone-950 transition hover:bg-stone-200"
+              >
+                Call First
+              </a>
+            </div>
           </div>
         </div>
       </section>

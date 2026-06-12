@@ -1,15 +1,19 @@
-const mongoose = require('mongoose');
+const { getSupabase } = require('./supabase');
 
 const connectDB = async () => {
   try {
-    if (!process.env.MONGODB_URI) {
-      throw new Error('MONGODB_URI is not configured');
+    const { error } = await getSupabase()
+      .from('bookings')
+      .select('id', { count: 'exact', head: true })
+      .limit(1);
+
+    if (error) {
+      throw error;
     }
 
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('MongoDB Connected Successfully');
+    console.log('Supabase Connected Successfully');
   } catch (error) {
-    console.error('MongoDB Connection Error:', error.message);
+    console.error('Supabase Connection Error:', error.message);
     process.exit(1);
   }
 };

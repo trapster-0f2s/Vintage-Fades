@@ -24,7 +24,9 @@ const emptyEditForm = {
   phone: '',
   date: '',
   time: '',
-  services: ''
+  services: '',
+  subscriptionStatus: 'none',
+  subscriptionReference: ''
 };
 
 const formatDate = (dateString) => {
@@ -51,6 +53,12 @@ const servicesToText = (services) => (
 const parseServices = (value) => (
   value.split(',').map((service) => service.trim()).filter(Boolean)
 );
+
+const getSubscriptionLabel = (status) => {
+  if (status === 'active') return 'Active pass';
+  if (status === 'signup') return 'New signup';
+  return 'Pay as you go';
+};
 
 const StatCard = ({ icon: Icon, label, value }) => (
   <div className="rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
@@ -132,6 +140,7 @@ const AdminPage = () => {
     confirmed: 0,
     completed: 0,
     cancelled: 0,
+    monthlySubscriptions: 0,
     totalRevenue: 0
   });
   const [loading, setLoading] = useState(false);
@@ -186,7 +195,9 @@ const AdminPage = () => {
       const matchesSearch = !term || [
         booking.name,
         booking.phone,
-        servicesToText(booking.services)
+        servicesToText(booking.services),
+        getSubscriptionLabel(booking.subscriptionStatus),
+        booking.subscriptionReference
       ].some((value) => String(value || '').toLowerCase().includes(term));
       const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
       return matchesSearch && matchesStatus;
@@ -228,7 +239,9 @@ const AdminPage = () => {
       phone: String(booking.phone || ''),
       date: toDateInputValue(booking.date),
       time: booking.time || '',
-      services: servicesToText(booking.services)
+      services: servicesToText(booking.services),
+      subscriptionStatus: booking.subscriptionStatus || 'none',
+      subscriptionReference: booking.subscriptionReference || ''
     });
   };
 
@@ -242,7 +255,9 @@ const AdminPage = () => {
         phone: editForm.phone,
         date: editForm.date,
         time: editForm.time,
-        services: parseServices(editForm.services)
+        services: parseServices(editForm.services),
+        subscriptionStatus: editForm.subscriptionStatus,
+        subscriptionReference: editForm.subscriptionReference
       });
       setEditingId(null);
       setEditForm(emptyEditForm);
@@ -293,10 +308,11 @@ const AdminPage = () => {
           <p className="mb-6 rounded-md bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">{error}</p>
         )}
 
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <StatCard icon={CalendarDays} label="Total Bookings" value={stats.total} />
           <StatCard icon={CheckCircle} label="Confirmed" value={stats.confirmed} />
           <StatCard icon={Clock3} label="Completed" value={stats.completed} />
+          <StatCard icon={CalendarDays} label="Monthly Passes" value={stats.monthlySubscriptions || 0} />
           <StatCard icon={DollarSign} label="Revenue" value={formatCurrency(stats.totalRevenue)} />
         </section>
 
@@ -359,6 +375,29 @@ const AdminPage = () => {
                 className="rounded-md border border-stone-300 px-4 py-3 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200 md:col-span-2"
                 required
               />
+              <select
+                value={editForm.subscriptionStatus}
+                onChange={(event) => setEditForm({
+                  ...editForm,
+                  subscriptionStatus: event.target.value,
+                  subscriptionReference: event.target.value === 'active'
+                    ? editForm.subscriptionReference
+                    : ''
+                })}
+                className="rounded-md border border-stone-300 px-4 py-3 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+              >
+                <option value="none">Pay as you go</option>
+                <option value="active">Active monthly pass</option>
+                <option value="signup">New monthly signup</option>
+              </select>
+              <input
+                type="text"
+                placeholder="Subscription reference"
+                value={editForm.subscriptionReference}
+                onChange={(event) => setEditForm({ ...editForm, subscriptionReference: event.target.value })}
+                className="rounded-md border border-stone-300 px-4 py-3 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200 disabled:bg-stone-100"
+                disabled={editForm.subscriptionStatus !== 'active'}
+              />
               <div className="flex gap-3 md:col-span-2">
                 <button
                   type="submit"
@@ -419,6 +458,7 @@ const AdminPage = () => {
                   <th className="px-4 py-3">Client</th>
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3">Services</th>
+                  <th className="px-4 py-3">Subscription</th>
                   <th className="px-4 py-3">Total</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Actions</th>
@@ -427,11 +467,11 @@ const AdminPage = () => {
               <tbody className="divide-y divide-stone-200">
                 {loading ? (
                   <tr>
-                    <td colSpan="6" className="px-4 py-10 text-center font-semibold text-stone-500">Loading bookings...</td>
+                    <td colSpan="7" className="px-4 py-10 text-center font-semibold text-stone-500">Loading bookings...</td>
                   </tr>
                 ) : filteredBookings.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="px-4 py-10 text-center font-semibold text-stone-500">No bookings found.</td>
+                    <td colSpan="7" className="px-4 py-10 text-center font-semibold text-stone-500">No bookings found.</td>
                   </tr>
                 ) : filteredBookings.map((booking) => (
                   <tr key={booking._id} className="align-top">
@@ -444,7 +484,25 @@ const AdminPage = () => {
                       <p className="mt-1 text-stone-500">{booking.time}</p>
                     </td>
                     <td className="max-w-xs px-4 py-4 text-stone-600">{servicesToText(booking.services)}</td>
-                    <td className="px-4 py-4 font-black">{formatCurrency(booking.total)}</td>
+                    <td className="px-4 py-4">
+                      <p className="font-bold text-stone-900">{getSubscriptionLabel(booking.subscriptionStatus)}</p>
+                      {booking.subscriptionReference && (
+                        <p className="mt-1 text-xs font-semibold text-stone-500">{booking.subscriptionReference}</p>
+                      )}
+                      {Number(booking.subscriptionDiscount || 0) > 0 && (
+                        <p className="mt-1 text-xs font-semibold text-emerald-700">
+                          Credit {formatCurrency(booking.subscriptionDiscount)}
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-4 py-4">
+                      <p className="font-black">{formatCurrency(booking.total)}</p>
+                      {Number(booking.subscriptionCharge || 0) > 0 && (
+                        <p className="mt-1 text-xs font-semibold text-stone-500">
+                          Pass {formatCurrency(booking.subscriptionCharge)}
+                        </p>
+                      )}
+                    </td>
                     <td className="px-4 py-4">
                       <select
                         value={booking.status}

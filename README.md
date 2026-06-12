@@ -4,7 +4,7 @@ Full-stack booking and administration system for Vintage Fades Barbershop.
 
 ## Project Structure
 
-- `backend/` - Express API, MongoDB, JWT admin auth, booking validation
+- `backend/` - Express API, Supabase Postgres, JWT admin auth, booking validation
 - `frontend/` - Public Vite + React booking site
 - `admin/` - Standalone Vite + React admin dashboard
 
@@ -21,14 +21,15 @@ Full-stack booking and administration system for Vintage Fades Barbershop.
 
 - Node.js 20 or newer
 - npm
-- MongoDB connection string
+- Supabase project URL and service role key
 
 ## Environment Variables
 
 ### Backend `.env`
 
 ```env
-MONGODB_URI=mongodb://localhost:27017/vintage-fades
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 JWT_SECRET=replace-with-a-long-random-secret
 ADMIN_PASSWORD=replace-with-a-strong-admin-password
 # Preferred for production:
@@ -39,6 +40,8 @@ CORS_ORIGINS=http://localhost:3000,http://localhost:3001
 ```
 
 Use `ADMIN_PASSWORD_HASH` in production when possible. `ADMIN_PASSWORD` remains supported for simple deployments.
+Run `backend/supabase/schema.sql` in the Supabase SQL editor before starting the API.
+Keep `SUPABASE_SERVICE_ROLE_KEY` on the backend only; never expose it to the Vite apps.
 
 ### Frontend and Admin
 
@@ -118,7 +121,7 @@ Netlify configs are included for the public and admin apps. Build command is `np
 
 Set production environment variables in your hosting dashboards:
 
-- Backend: `MONGODB_URI`, `JWT_SECRET`, `ADMIN_PASSWORD_HASH` or `ADMIN_PASSWORD`, `CORS_ORIGINS`
+- Backend: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `ADMIN_PASSWORD_HASH` or `ADMIN_PASSWORD`, `CORS_ORIGINS`
 - Frontend/admin: `VITE_API_URL`
 
 ## Security Notes

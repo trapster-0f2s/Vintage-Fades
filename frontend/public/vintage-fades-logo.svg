@@ -1,0 +1,10 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="256" height="256" rx="48" fill="#1C1917"/>
+  <circle cx="128" cy="128" r="96" fill="#F59E0B"/>
+  <circle cx="128" cy="128" r="86" fill="#1C1917"/>
+  <path d="M73 72H183L170 96H86L73 72Z" fill="#F59E0B"/>
+  <path d="M82 178H174L160 202H96L82 178Z" fill="#F59E0B"/>
+  <path d="M80 113C80 98 92 88 109 88H145C163 88 176 99 176 116C176 129 168 138 156 142L178 168H144L126 146H112V168H80V113ZM112 113V123H144C148 123 151 121 151 118C151 115 148 113 144 113H112Z" fill="#FDE68A"/>
+  <path d="M87 57L102 43L128 63L154 43L169 57L128 88L87 57Z" fill="#FDE68A"/>
+  <text x="128" y="221" text-anchor="middle" fill="#FDE68A" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="800" letter-spacing="1.4">VINTAGE FADES</text>
+</svg>

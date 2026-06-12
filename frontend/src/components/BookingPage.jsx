@@ -1,6 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { AlertCircle, Check, Clock, Scissors } from 'lucide-react';
-import { getEstimatedDuration, getTimeOptions, getTodayInputValue } from '../data/services';
+import {
+  calculateBookingPricing,
+  getEstimatedDuration,
+  getTimeOptions,
+  getTodayInputValue,
+  monthlySubscription
+} from '../data/services';
 import { bookingsAPI } from '../services/api';
 
 const getApiError = (error) => {
@@ -10,20 +16,46 @@ const getApiError = (error) => {
   return 'We could not create the booking. Please try again.';
 };
 
+const subscriptionOptions = [
+  {
+    value: 'none',
+    title: 'Pay as you go',
+    description: 'Pay the normal menu price for this appointment.'
+  },
+  {
+    value: 'active',
+    title: 'I have a monthly pass',
+    description: 'Enter the phone or name linked to your active pass. One eligible cut value is covered.'
+  },
+  {
+    value: 'signup',
+    title: 'Sign me up',
+    description: `Add the ${monthlySubscription.name} for N$${monthlySubscription.price} and cover today's eligible cut value.`
+  }
+];
+
 const BookingPage = ({ services = {}, setCurrentPage }) => {
   const [selectedServices, setSelectedServices] = useState([]);
   const [bookingForm, setBookingForm] = useState({
     name: '',
     phone: '',
     date: '',
-    time: ''
+    time: '',
+    subscriptionStatus: 'none',
+    subscriptionReference: ''
   });
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState(null);
 
   const timeOptions = useMemo(() => getTimeOptions(bookingForm.date), [bookingForm.date]);
-  const total = selectedServices.reduce((sum, service) => sum + service.price, 0);
+  const pricing = useMemo(
+    () => calculateBookingPricing(selectedServices, bookingForm.subscriptionStatus),
+    [selectedServices, bookingForm.subscriptionStatus]
+  );
+  const total = pricing.total;
   const duration = getEstimatedDuration(selectedServices);
+  const wantsSubscription = bookingForm.subscriptionStatus !== 'none';
+  const hasSubscriptionCut = wantsSubscription && pricing.subscriptionDiscount > 0;
 
   const updateForm = (field, value) => {
     setBookingForm((current) => {
@@ -33,6 +65,9 @@ const BookingPage = ({ services = {}, setCurrentPage }) => {
         if (!availableTimes.includes(next.time)) {
           next.time = '';
         }
+      }
+      if (field === 'subscriptionStatus' && value !== 'active') {
+        next.subscriptionReference = '';
       }
       return next;
     });
@@ -51,6 +86,12 @@ const BookingPage = ({ services = {}, setCurrentPage }) => {
 
   const validateForm = () => {
     if (selectedServices.length === 0) return 'Choose at least one service.';
+    if (wantsSubscription && !hasSubscriptionCut) {
+      return 'Choose a haircut, fade, lineup, trim, or bald service to use the monthly subscription.';
+    }
+    if (bookingForm.subscriptionStatus === 'active' && !bookingForm.subscriptionReference.trim()) {
+      return 'Enter the phone or name linked to your monthly subscription.';
+    }
     if (!bookingForm.name.trim()) return 'Enter your full name.';
     if (!bookingForm.phone.trim()) return 'Enter your phone number.';
     if (!bookingForm.date) return 'Choose a booking date.';
@@ -78,9 +119,16 @@ const BookingPage = ({ services = {}, setCurrentPage }) => {
 
       setNotice({
         type: 'success',
-        message: `Booking confirmed for ${bookingForm.name}. Total: N$${total}.`
+        message: `Booking confirmed for ${bookingForm.name}. Total due: N$${total}.`
       });
-      setBookingForm({ name: '', phone: '', date: '', time: '' });
+      setBookingForm({
+        name: '',
+        phone: '',
+        date: '',
+        time: '',
+        subscriptionStatus: 'none',
+        subscriptionReference: ''
+      });
       setSelectedServices([]);
     } catch (error) {
       setNotice({ type: 'error', message: getApiError(error) });
@@ -167,6 +215,81 @@ const BookingPage = ({ services = {}, setCurrentPage }) => {
 
           <section className="rounded-lg border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
             <p className="text-sm font-bold uppercase text-amber-700">Step 2</p>
+            <h2 className="mt-1 text-2xl font-black">Monthly subscription</h2>
+            <p className="mt-3 text-sm leading-6 text-stone-600">
+              {monthlySubscription.description}
+            </p>
+
+            <div className="mt-6 grid gap-3 lg:grid-cols-3">
+              {subscriptionOptions.map((option) => {
+                const isSelected = bookingForm.subscriptionStatus === option.value;
+                return (
+                  <button
+                    type="button"
+                    key={option.value}
+                    onClick={() => updateForm('subscriptionStatus', option.value)}
+                    aria-pressed={isSelected}
+                    className={`rounded-lg border-2 p-4 text-left transition ${
+                      isSelected
+                        ? 'border-amber-500 bg-amber-50'
+                        : 'border-stone-200 bg-white hover:border-amber-300'
+                    }`}
+                  >
+                    <span className={`mb-3 flex h-8 w-8 items-center justify-center rounded-md ${
+                      isSelected ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-400'
+                    }`}>
+                      <Check size={16} />
+                    </span>
+                    <span className="block text-base font-black text-stone-950">{option.title}</span>
+                    <span className="mt-2 block text-sm leading-6 text-stone-600">{option.description}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {bookingForm.subscriptionStatus === 'active' && (
+              <label className="mt-5 block">
+                <span className="text-sm font-bold text-stone-700">Subscription phone or name</span>
+                <input
+                  type="text"
+                  value={bookingForm.subscriptionReference}
+                  onChange={(event) => updateForm('subscriptionReference', event.target.value)}
+                  className="mt-2 w-full rounded-md border border-stone-300 px-4 py-3 text-base outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                  placeholder="Name or phone used for the monthly pass"
+                  autoComplete="off"
+                />
+              </label>
+            )}
+
+            {bookingForm.subscriptionStatus === 'signup' && (
+              <div className="mt-5 rounded-lg bg-stone-950 p-5 text-white">
+                <p className="text-sm font-bold uppercase text-amber-300">How sign-up works</p>
+                <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-stone-100">
+                  {monthlySubscription.signupSteps.map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ol>
+                <p className="mt-4 text-sm font-bold text-amber-200">
+                  The pass adds N${monthlySubscription.price} today and applies one eligible cut credit to this booking.
+                </p>
+              </div>
+            )}
+
+            {wantsSubscription && (
+              <p className={`mt-5 rounded-md px-4 py-3 text-sm font-semibold ${
+                hasSubscriptionCut
+                  ? 'bg-emerald-50 text-emerald-800'
+                  : 'bg-amber-50 text-amber-900'
+              }`}>
+                {hasSubscriptionCut
+                  ? `${pricing.coveredService.name} is eligible for the monthly pass credit.`
+                  : 'Select a haircut, fade, lineup, trim, or bald service to activate the pass logic.'}
+              </p>
+            )}
+          </section>
+
+          <section className="rounded-lg border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
+            <p className="text-sm font-bold uppercase text-amber-700">Step 3</p>
             <h2 className="mt-1 text-2xl font-black">Your details</h2>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -252,6 +375,23 @@ const BookingPage = ({ services = {}, setCurrentPage }) => {
                   </div>
                 ))}
                 <div className="h-px bg-stone-200" />
+                <div className="flex justify-between text-sm font-bold text-stone-600">
+                  <span>Subtotal</span>
+                  <span>N${pricing.subtotal}</span>
+                </div>
+                {pricing.subscriptionDiscount > 0 && (
+                  <div className="flex justify-between gap-4 text-sm font-bold text-emerald-700">
+                    <span>Monthly pass credit</span>
+                    <span>-N${pricing.subscriptionDiscount}</span>
+                  </div>
+                )}
+                {pricing.subscriptionCharge > 0 && (
+                  <div className="flex justify-between gap-4 text-sm font-bold text-stone-700">
+                    <span>{monthlySubscription.name}</span>
+                    <span>N${pricing.subscriptionCharge}</span>
+                  </div>
+                )}
+                <div className="h-px bg-stone-200" />
                 <div className="flex justify-between text-xl font-black">
                   <span>Total</span>
                   <span>N${total}</span>
@@ -260,6 +400,13 @@ const BookingPage = ({ services = {}, setCurrentPage }) => {
                   <Clock size={16} />
                   Estimated duration: {duration} min
                 </p>
+                {bookingForm.subscriptionStatus !== 'none' && (
+                  <p className="rounded-md bg-stone-100 px-3 py-2 text-sm font-semibold text-stone-700">
+                    {bookingForm.subscriptionStatus === 'active'
+                      ? 'Existing monthly pass selected.'
+                      : 'Monthly pass signup will be added to this booking.'}
+                  </p>
+                )}
               </div>
             )}
 

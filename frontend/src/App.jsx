@@ -3,7 +3,7 @@ import './App.css';
 import Navigation from './components/Navigation';
 import HomePage from './components/HomePage';
 import BookingPage from './components/BookingPage';
-import { serviceCatalog } from './data/services';
+import { normalizeServiceCatalog, serviceCatalog } from './data/services';
 import { servicesAPI } from './services/api';
 
 function App() {
@@ -17,7 +17,7 @@ function App() {
     servicesAPI.getAll()
       .then((response) => {
         if (isMounted && response.data?.categories) {
-          setServices(response.data.categories);
+          setServices(normalizeServiceCatalog(response.data.categories));
           setServicesNotice('');
         }
       })
