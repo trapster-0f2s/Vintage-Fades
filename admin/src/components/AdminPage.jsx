@@ -26,8 +26,16 @@ const emptyEditForm = {
   time: '',
   services: '',
   subscriptionStatus: 'none',
+  subscriptionPlan: '',
   subscriptionReference: ''
 };
+
+const membershipPlanOptions = [
+  'Founding Members',
+  'Gold',
+  'Platinum',
+  'Black Card'
+];
 
 const formatDate = (dateString) => {
   if (!dateString) return '';
@@ -55,10 +63,27 @@ const parseServices = (value) => (
 );
 
 const getSubscriptionLabel = (status) => {
-  if (status === 'active') return 'Active pass';
-  if (status === 'signup') return 'New signup';
-  return 'Pay as you go';
+  if (status === 'active') return 'Member';
+  if (status === 'signup') return 'New member signup';
+  return 'Not a member';
 };
+
+const getMembershipTypeLabel = (booking) => {
+  if (!['active', 'signup'].includes(booking?.subscriptionStatus)) return 'None';
+  return normalizeMembershipPlan(booking?.subscriptionPlan) || 'Membership type not set';
+};
+
+const normalizeMembershipPlan = (plan) => (
+  plan === 'Founding Members Offer' ? 'Founding Members' : (plan || '')
+);
+
+const getHaircutType = (services) => (
+  Array.isArray(services) && services.length > 0 ? services[0] : 'Not specified'
+);
+
+const getAddOnsText = (services) => (
+  Array.isArray(services) && services.length > 1 ? services.slice(1).join(', ') : ''
+);
 
 const StatCard = ({ icon: Icon, label, value }) => (
   <div className="rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
@@ -195,8 +220,10 @@ const AdminPage = () => {
       const matchesSearch = !term || [
         booking.name,
         booking.phone,
+        getHaircutType(booking.services),
         servicesToText(booking.services),
         getSubscriptionLabel(booking.subscriptionStatus),
+        getMembershipTypeLabel(booking),
         booking.subscriptionReference
       ].some((value) => String(value || '').toLowerCase().includes(term));
       const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
@@ -241,6 +268,7 @@ const AdminPage = () => {
       time: booking.time || '',
       services: servicesToText(booking.services),
       subscriptionStatus: booking.subscriptionStatus || 'none',
+      subscriptionPlan: normalizeMembershipPlan(booking.subscriptionPlan),
       subscriptionReference: booking.subscriptionReference || ''
     });
   };
@@ -257,6 +285,7 @@ const AdminPage = () => {
         time: editForm.time,
         services: parseServices(editForm.services),
         subscriptionStatus: editForm.subscriptionStatus,
+        subscriptionPlan: editForm.subscriptionPlan,
         subscriptionReference: editForm.subscriptionReference
       });
       setEditingId(null);
@@ -312,7 +341,7 @@ const AdminPage = () => {
           <StatCard icon={CalendarDays} label="Total Bookings" value={stats.total} />
           <StatCard icon={CheckCircle} label="Confirmed" value={stats.confirmed} />
           <StatCard icon={Clock3} label="Completed" value={stats.completed} />
-          <StatCard icon={CalendarDays} label="Monthly Passes" value={stats.monthlySubscriptions || 0} />
+          <StatCard icon={CalendarDays} label="Members" value={stats.monthlySubscriptions || 0} />
           <StatCard icon={DollarSign} label="Revenue" value={formatCurrency(stats.totalRevenue)} />
         </section>
 
@@ -380,19 +409,33 @@ const AdminPage = () => {
                 onChange={(event) => setEditForm({
                   ...editForm,
                   subscriptionStatus: event.target.value,
+                  subscriptionPlan: event.target.value === 'none'
+                    ? ''
+                    : (editForm.subscriptionPlan || membershipPlanOptions[0]),
                   subscriptionReference: event.target.value === 'active'
                     ? editForm.subscriptionReference
                     : ''
                 })}
                 className="rounded-md border border-stone-300 px-4 py-3 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
               >
-                <option value="none">Pay as you go</option>
-                <option value="active">Active monthly pass</option>
-                <option value="signup">New monthly signup</option>
+                <option value="none">Not a member</option>
+                <option value="active">Existing member</option>
+                <option value="signup">New member signup</option>
+              </select>
+              <select
+                value={editForm.subscriptionPlan}
+                onChange={(event) => setEditForm({ ...editForm, subscriptionPlan: event.target.value })}
+                className="rounded-md border border-stone-300 px-4 py-3 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200 disabled:bg-stone-100"
+                disabled={editForm.subscriptionStatus === 'none'}
+              >
+                <option value="">Membership type</option>
+                {membershipPlanOptions.map((plan) => (
+                  <option key={plan} value={plan}>{plan}</option>
+                ))}
               </select>
               <input
                 type="text"
-                placeholder="Subscription reference"
+                placeholder="Member reference"
                 value={editForm.subscriptionReference}
                 onChange={(event) => setEditForm({ ...editForm, subscriptionReference: event.target.value })}
                 className="rounded-md border border-stone-300 px-4 py-3 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200 disabled:bg-stone-100"
@@ -457,8 +500,8 @@ const AdminPage = () => {
                 <tr>
                   <th className="px-4 py-3">Client</th>
                   <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3">Services</th>
-                  <th className="px-4 py-3">Subscription</th>
+                  <th className="px-4 py-3">Haircut Type</th>
+                  <th className="px-4 py-3">Membership</th>
                   <th className="px-4 py-3">Total</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Actions</th>
@@ -483,9 +526,23 @@ const AdminPage = () => {
                       <p className="font-bold">{formatDate(booking.date)}</p>
                       <p className="mt-1 text-stone-500">{booking.time}</p>
                     </td>
-                    <td className="max-w-xs px-4 py-4 text-stone-600">{servicesToText(booking.services)}</td>
+                    <td className="max-w-xs px-4 py-4">
+                      <p className="font-bold text-stone-900">{getHaircutType(booking.services)}</p>
+                      {getAddOnsText(booking.services) && (
+                        <p className="mt-1 text-xs font-semibold text-stone-500">
+                          Add-ons: {getAddOnsText(booking.services)}
+                        </p>
+                      )}
+                    </td>
                     <td className="px-4 py-4">
                       <p className="font-bold text-stone-900">{getSubscriptionLabel(booking.subscriptionStatus)}</p>
+                      <p className={`mt-1 inline-flex rounded-md px-2 py-1 text-xs font-black ${
+                        booking.subscriptionStatus === 'none'
+                          ? 'bg-stone-100 text-stone-500'
+                          : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {getMembershipTypeLabel(booking)}
+                      </p>
                       {booking.subscriptionReference && (
                         <p className="mt-1 text-xs font-semibold text-stone-500">{booking.subscriptionReference}</p>
                       )}

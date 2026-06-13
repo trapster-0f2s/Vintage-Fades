@@ -39,12 +39,19 @@ const serviceCatalog = {
 };
 
 const monthlySubscription = {
-  id: 'monthly-fresh-pass',
-  name: 'Monthly Fresh Pass',
-  price: 450,
+  id: 'founding-members-offer',
+  name: 'Founding Members Offer',
+  price: 599,
   cadence: 'monthly',
-  description: 'Covers the cut, fade, lineup, trim, or bald value on eligible bookings. Beard, colour, facial, enhancement, and line-design add-ons remain payable.'
+  description: 'Look fresh every week without breaking the bank. First 50 members can lock in N$599/month forever, with priority booking, exclusive benefits, discounts, and weekly haircuts available.'
 };
+
+const membershipPlans = [
+  { id: 'founding', name: 'Founding Members', price: 599, cadence: 'month' },
+  { id: 'gold', name: 'Gold', price: 400, cadence: 'month' },
+  { id: 'platinum', name: 'Platinum', price: 700, cadence: 'month' },
+  { id: 'black-card', name: 'Black Card', price: 999, cadence: 'month' }
+];
 
 const businessHours = {
   default: { open: '09:00', close: '20:00' },
@@ -89,22 +96,34 @@ const calculateTotal = (services) => services.reduce((sum, service) => sum + ser
 
 const getSubscriptionCredit = (service) => Number((service && service.subscriptionCredit) || 0);
 
+const getMembershipPlan = (value) => {
+  const planKey = String(value || '').trim().toLowerCase();
+  if (planKey === 'founding members offer') return membershipPlans[0];
+
+  return membershipPlans.find((plan) => (
+    plan.id.toLowerCase() === planKey ||
+    plan.name.toLowerCase() === planKey
+  )) || null;
+};
+
 const getCoveredSubscriptionService = (services = []) => (
   services.reduce((covered, service) => (
     getSubscriptionCredit(service) > getSubscriptionCredit(covered) ? service : covered
   ), null)
 );
 
-const calculateBookingPricing = (services = [], subscriptionStatus = 'none') => {
+const calculateBookingPricing = (services = [], subscriptionStatus = 'none', subscriptionPlan = '') => {
   const subtotal = calculateTotal(services);
   const coveredService = getCoveredSubscriptionService(services);
   const subscriptionApplies = ['active', 'signup'].includes(subscriptionStatus) && coveredService;
   const subscriptionDiscount = subscriptionApplies ? getSubscriptionCredit(coveredService) : 0;
-  const subscriptionCharge = subscriptionStatus === 'signup' ? monthlySubscription.price : 0;
+  const selectedMembership = getMembershipPlan(subscriptionPlan) || membershipPlans[0];
+  const subscriptionCharge = subscriptionStatus === 'signup' ? selectedMembership.price : 0;
 
   return {
     subtotal,
     coveredService,
+    selectedMembership,
     subscriptionDiscount,
     subscriptionCharge,
     total: Math.max(subtotal - subscriptionDiscount, 0) + subscriptionCharge
@@ -142,12 +161,14 @@ const isTimeWithinBusinessHours = (date, time) => {
 module.exports = {
   serviceCatalog,
   monthlySubscription,
+  membershipPlans,
   flattenServices,
   resolveSelectedServices,
   calculateBookingPricing,
   calculateTotal,
   dateOnlyToDate,
   getCoveredSubscriptionService,
+  getMembershipPlan,
   getSubscriptionCredit,
   getBusinessHoursForDate,
   isFutureDate,

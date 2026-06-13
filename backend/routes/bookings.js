@@ -7,7 +7,7 @@ const {
   dateOnlyToDate,
   isFutureDate,
   isTimeWithinBusinessHours,
-  monthlySubscription,
+  getMembershipPlan,
   resolveSelectedServices
 } = require('../config/services');
 
@@ -57,6 +57,17 @@ const subscriptionValidator = [
   body('subscriptionReference').custom((value, { req }) => {
     if (req.body.subscriptionStatus === 'active' && !String(value || '').trim()) {
       throw new Error('Enter the phone or name linked to your monthly subscription');
+    }
+    return true;
+  }),
+  body('subscriptionPlan')
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ max: 80 })
+    .withMessage('Membership type is too long'),
+  body('subscriptionPlan').custom((value, { req }) => {
+    if (['active', 'signup'].includes(req.body.subscriptionStatus) && !getMembershipPlan(value)) {
+      throw new Error('Choose a valid membership type');
     }
     return true;
   })
@@ -127,6 +138,7 @@ const buildServicePayload = ({
   serviceIds,
   services,
   subscriptionStatus,
+  subscriptionPlan,
   subscriptionReference
 }) => {
   const selectedServices = resolveSelectedServices({ serviceIds, services });
@@ -135,7 +147,15 @@ const buildServicePayload = ({
   }
 
   const resolvedSubscriptionStatus = getSubscriptionStatus(subscriptionStatus);
-  const pricing = calculateBookingPricing(selectedServices, resolvedSubscriptionStatus);
+  const selectedMembership = getMembershipPlan(subscriptionPlan);
+  const resolvedSubscriptionPlan = resolvedSubscriptionStatus === 'none'
+    ? ''
+    : (selectedMembership || getMembershipPlan('founding')).name;
+  const pricing = calculateBookingPricing(
+    selectedServices,
+    resolvedSubscriptionStatus,
+    resolvedSubscriptionPlan
+  );
 
   if (resolvedSubscriptionStatus !== 'none' && pricing.subscriptionDiscount === 0) {
     return {
@@ -152,7 +172,7 @@ const buildServicePayload = ({
       subscriptionReference: resolvedSubscriptionStatus === 'active'
         ? String(subscriptionReference || '').trim()
         : '',
-      subscriptionPlan: resolvedSubscriptionStatus === 'none' ? '' : monthlySubscription.name,
+      subscriptionPlan: resolvedSubscriptionStatus === 'none' ? '' : resolvedSubscriptionPlan,
       subscriptionCoveredService: pricing.coveredService?.name || '',
       subscriptionDiscount: pricing.subscriptionDiscount,
       subscriptionCharge: pricing.subscriptionCharge,
@@ -288,6 +308,7 @@ router.put('/:id', auth, [
     const hasServiceUpdate = req.body.serviceIds !== undefined || req.body.services !== undefined;
     const hasSubscriptionUpdate = (
       req.body.subscriptionStatus !== undefined ||
+      req.body.subscriptionPlan !== undefined ||
       req.body.subscriptionReference !== undefined
     );
 
@@ -303,6 +324,9 @@ router.put('/:id', auth, [
         subscriptionStatus: hasSubscriptionUpdate
           ? req.body.subscriptionStatus
           : existingBooking.subscriptionStatus,
+        subscriptionPlan: hasSubscriptionUpdate
+          ? req.body.subscriptionPlan
+          : existingBooking.subscriptionPlan,
         subscriptionReference: hasSubscriptionUpdate
           ? req.body.subscriptionReference
           : existingBooking.subscriptionReference

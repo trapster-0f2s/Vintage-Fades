@@ -5,6 +5,7 @@ import {
   getEstimatedDuration,
   getTimeOptions,
   getTodayInputValue,
+  membershipSignupOptions,
   monthlySubscription
 } from '../data/services';
 import { bookingsAPI } from '../services/api';
@@ -24,13 +25,13 @@ const subscriptionOptions = [
   },
   {
     value: 'active',
-    title: 'I have a monthly pass',
-    description: 'Enter the phone or name linked to your active pass. One eligible cut value is covered.'
+    title: 'I am a member',
+    description: 'Enter the phone or name linked to your active membership and choose the membership type.'
   },
   {
     value: 'signup',
     title: 'Sign me up',
-    description: `Add the ${monthlySubscription.name} for N$${monthlySubscription.price} and cover today's eligible cut value.`
+    description: 'Choose the membership plan you want and add it to this booking.'
   }
 ];
 
@@ -42,6 +43,7 @@ const BookingPage = ({ services = {}, setCurrentPage }) => {
     date: '',
     time: '',
     subscriptionStatus: 'none',
+    subscriptionPlan: '',
     subscriptionReference: ''
   });
   const [loading, setLoading] = useState(false);
@@ -49,8 +51,12 @@ const BookingPage = ({ services = {}, setCurrentPage }) => {
 
   const timeOptions = useMemo(() => getTimeOptions(bookingForm.date), [bookingForm.date]);
   const pricing = useMemo(
-    () => calculateBookingPricing(selectedServices, bookingForm.subscriptionStatus),
-    [selectedServices, bookingForm.subscriptionStatus]
+    () => calculateBookingPricing(
+      selectedServices,
+      bookingForm.subscriptionStatus,
+      bookingForm.subscriptionPlan
+    ),
+    [bookingForm.subscriptionPlan, bookingForm.subscriptionStatus, selectedServices]
   );
   const total = pricing.total;
   const duration = getEstimatedDuration(selectedServices);
@@ -68,6 +74,11 @@ const BookingPage = ({ services = {}, setCurrentPage }) => {
       }
       if (field === 'subscriptionStatus' && value !== 'active') {
         next.subscriptionReference = '';
+      }
+      if (field === 'subscriptionStatus') {
+        next.subscriptionPlan = value === 'none'
+          ? ''
+          : (current.subscriptionPlan || membershipSignupOptions[0].name);
       }
       return next;
     });
@@ -91,6 +102,9 @@ const BookingPage = ({ services = {}, setCurrentPage }) => {
     }
     if (bookingForm.subscriptionStatus === 'active' && !bookingForm.subscriptionReference.trim()) {
       return 'Enter the phone or name linked to your monthly subscription.';
+    }
+    if (wantsSubscription && !bookingForm.subscriptionPlan) {
+      return 'Choose the membership type.';
     }
     if (!bookingForm.name.trim()) return 'Enter your full name.';
     if (!bookingForm.phone.trim()) return 'Enter your phone number.';
@@ -127,6 +141,7 @@ const BookingPage = ({ services = {}, setCurrentPage }) => {
         date: '',
         time: '',
         subscriptionStatus: 'none',
+        subscriptionPlan: '',
         subscriptionReference: ''
       });
       setSelectedServices([]);
@@ -247,18 +262,37 @@ const BookingPage = ({ services = {}, setCurrentPage }) => {
               })}
             </div>
 
-            {bookingForm.subscriptionStatus === 'active' && (
-              <label className="mt-5 block">
-                <span className="text-sm font-bold text-stone-700">Subscription phone or name</span>
-                <input
-                  type="text"
-                  value={bookingForm.subscriptionReference}
-                  onChange={(event) => updateForm('subscriptionReference', event.target.value)}
-                  className="mt-2 w-full rounded-md border border-stone-300 px-4 py-3 text-base outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
-                  placeholder="Name or phone used for the monthly pass"
-                  autoComplete="off"
-                />
-              </label>
+            {wantsSubscription && (
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <label className="block">
+                  <span className="text-sm font-bold text-stone-700">Membership type</span>
+                  <select
+                    value={bookingForm.subscriptionPlan}
+                    onChange={(event) => updateForm('subscriptionPlan', event.target.value)}
+                    className="mt-2 w-full rounded-md border border-stone-300 bg-white px-4 py-3 text-base outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                  >
+                    {membershipSignupOptions.map((plan) => (
+                      <option key={plan.id} value={plan.name}>
+                        {plan.name} - N${plan.price}/{plan.cadence}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                {bookingForm.subscriptionStatus === 'active' && (
+                  <label className="block">
+                    <span className="text-sm font-bold text-stone-700">Member phone or name</span>
+                    <input
+                      type="text"
+                      value={bookingForm.subscriptionReference}
+                      onChange={(event) => updateForm('subscriptionReference', event.target.value)}
+                      className="mt-2 w-full rounded-md border border-stone-300 px-4 py-3 text-base outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                      placeholder="Name or phone used for membership"
+                      autoComplete="off"
+                    />
+                  </label>
+                )}
+              </div>
             )}
 
             {bookingForm.subscriptionStatus === 'signup' && (
@@ -270,8 +304,13 @@ const BookingPage = ({ services = {}, setCurrentPage }) => {
                   ))}
                 </ol>
                 <p className="mt-4 text-sm font-bold text-amber-200">
-                  The pass adds N${monthlySubscription.price} today and applies one eligible cut credit to this booking.
+                  The membership adds N${pricing.selectedMembership?.price || monthlySubscription.price} today and applies one eligible cut credit to this booking.
                 </p>
+                {pricing.selectedMembership && (
+                  <p className="mt-2 text-sm font-bold text-white">
+                    Selected: {pricing.selectedMembership.name} at N${pricing.selectedMembership.price}/month.
+                  </p>
+                )}
               </div>
             )}
 
@@ -403,8 +442,8 @@ const BookingPage = ({ services = {}, setCurrentPage }) => {
                 {bookingForm.subscriptionStatus !== 'none' && (
                   <p className="rounded-md bg-stone-100 px-3 py-2 text-sm font-semibold text-stone-700">
                     {bookingForm.subscriptionStatus === 'active'
-                      ? 'Existing monthly pass selected.'
-                      : 'Monthly pass signup will be added to this booking.'}
+                      ? `Existing ${bookingForm.subscriptionPlan || 'membership'} selected.`
+                      : `${bookingForm.subscriptionPlan || 'Membership'} signup will be added to this booking.`}
                   </p>
                 )}
               </div>

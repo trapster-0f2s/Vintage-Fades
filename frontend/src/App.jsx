@@ -3,6 +3,7 @@ import './App.css';
 import Navigation from './components/Navigation';
 import HomePage from './components/HomePage';
 import BookingPage from './components/BookingPage';
+import MembershipPage from './components/MembershipPage';
 import { normalizeServiceCatalog, serviceCatalog } from './data/services';
 import { servicesAPI } from './services/api';
 
@@ -47,6 +48,9 @@ function App() {
           services={services}
           setCurrentPage={setCurrentPage}
         />
+      )}
+      {currentPage === 'membership' && (
+        <MembershipPage setCurrentPage={setCurrentPage} />
       )}
     </div>
   );

@@ -42,6 +42,13 @@ const Navigation = ({ currentPage, setCurrentPage }) => {
           >
             Services
           </button>
+          <button
+            type="button"
+            onClick={() => setCurrentPage('membership')}
+            className={navButtonClass('membership')}
+          >
+            Membership
+          </button>
           <a
             href="https://www.instagram.com/vintage_fades_barbershop/"
             target="_blank"

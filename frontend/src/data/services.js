@@ -39,16 +39,92 @@ export const serviceCatalog = {
 };
 
 export const monthlySubscription = {
-  id: 'monthly-fresh-pass',
-  name: 'Monthly Fresh Pass',
-  price: 450,
+  id: 'founding-members-offer',
+  name: 'Founding Members Offer',
+  price: 599,
   cadence: 'monthly',
-  description: 'Covers the cut, fade, lineup, trim, or bald value on eligible bookings. Beard, colour, facial, enhancement, and line-design add-ons remain payable.',
+  description: 'Look fresh every week without breaking the bank. First 50 members can lock in N$599/month forever, with priority booking, exclusive benefits, discounts, and weekly haircuts available.',
   signupSteps: [
-    'Choose the monthly pass option while booking.',
-    'Book an eligible haircut, fade, lineup, trim, or bald service.',
-    'Vintage Fades confirms payment and activates the pass by phone or at the shop.'
+    'Choose a membership plan and send your signup request.',
+    'Vintage Fades confirms availability, payment, and membership details.',
+    'Book your weekly cuts with priority access and stay sharp all month long.'
   ]
+};
+
+export const membershipBenefits = [
+  'Priority Booking',
+  'Exclusive Member Benefits',
+  'Discounts & Promotions',
+  'Weekly Haircuts Available',
+  'Skip the Queue',
+  'Stay Sharp All Month Long'
+];
+
+export const membershipPlans = [
+  {
+    id: 'gold',
+    name: 'Gold',
+    price: 400,
+    cadence: 'month',
+    tagline: 'For regular clients who want to stay fresh without overspending.',
+    bestFor: 'Budget-friendly weekly grooming',
+    features: [
+      'Priority booking access',
+      'Weekly haircuts available',
+      'Member-only discounts and promotions'
+    ]
+  },
+  {
+    id: 'platinum',
+    name: 'Platinum',
+    price: 700,
+    cadence: 'month',
+    tagline: 'For clients who take grooming seriously and want a cleaner monthly rhythm.',
+    bestFor: 'Most popular membership experience',
+    featured: true,
+    features: [
+      'Skip-the-queue booking support',
+      'Exclusive member benefits',
+      'Weekly cuts plus extra promotional value'
+    ]
+  },
+  {
+    id: 'black-card',
+    name: 'Black Card',
+    price: 999,
+    cadence: 'month',
+    tagline: 'For clients who want the premium Vintage Fades membership experience.',
+    bestFor: 'Highest-value all-month sharpness',
+    features: [
+      'Top-tier priority booking',
+      'Premium discounts and promotions',
+      'VIP member treatment all month long'
+    ]
+  }
+];
+
+export const foundingMembersOffer = {
+  id: 'founding',
+  name: 'Founding Members',
+  price: 599,
+  cadence: 'month',
+  limit: 50,
+  description: 'The first 50 members can secure their membership for only N$599/month and lock in that price forever.'
+};
+
+export const membershipSignupOptions = [
+  foundingMembersOffer,
+  ...membershipPlans
+];
+
+export const getMembershipPlan = (value) => {
+  const planKey = String(value || '').trim().toLowerCase();
+  if (planKey === 'founding members offer') return foundingMembersOffer;
+
+  return membershipSignupOptions.find((plan) => (
+    plan.id.toLowerCase() === planKey ||
+    plan.name.toLowerCase() === planKey
+  )) || null;
 };
 
 const businessHours = {
@@ -110,16 +186,18 @@ export const getCoveredSubscriptionService = (services = []) => (
   ), null)
 );
 
-export const calculateBookingPricing = (services = [], subscriptionStatus = 'none') => {
+export const calculateBookingPricing = (services = [], subscriptionStatus = 'none', subscriptionPlan = '') => {
   const subtotal = services.reduce((sum, service) => sum + service.price, 0);
   const coveredService = getCoveredSubscriptionService(services);
   const subscriptionApplies = ['active', 'signup'].includes(subscriptionStatus) && coveredService;
   const subscriptionDiscount = subscriptionApplies ? getSubscriptionCredit(coveredService) : 0;
-  const subscriptionCharge = subscriptionStatus === 'signup' ? monthlySubscription.price : 0;
+  const selectedMembership = getMembershipPlan(subscriptionPlan) || foundingMembersOffer;
+  const subscriptionCharge = subscriptionStatus === 'signup' ? selectedMembership.price : 0;
 
   return {
     subtotal,
     coveredService,
+    selectedMembership,
     subscriptionDiscount,
     subscriptionCharge,
     total: Math.max(subtotal - subscriptionDiscount, 0) + subscriptionCharge

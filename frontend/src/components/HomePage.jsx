@@ -54,6 +54,13 @@ const HomePage = ({ setCurrentPage, services = {}, servicesNotice = '' }) => {
               >
                 Book an Appointment
               </button>
+              <button
+                type="button"
+                onClick={() => setCurrentPage('membership')}
+                className="rounded-md bg-white px-6 py-3 text-base font-black text-stone-950 transition hover:bg-amber-300"
+              >
+                Membership Plans
+              </button>
               <a
                 href="tel:+264814748665"
                 className="rounded-md bg-white/10 px-6 py-3 text-base font-bold text-white ring-1 ring-white/20 transition hover:bg-white/20"
@@ -169,18 +176,19 @@ const HomePage = ({ setCurrentPage, services = {}, servicesNotice = '' }) => {
       <section className="bg-stone-950 py-16 text-white">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[1fr_1fr] lg:px-8">
           <div>
-            <p className="text-sm font-bold uppercase text-amber-300">Monthly subscription</p>
-            <h2 className="mt-2 text-4xl font-black">{monthlySubscription.name}</h2>
+            <p className="text-sm font-bold uppercase text-amber-300">Monthly memberships</p>
+            <h2 className="mt-2 text-4xl font-black">Stay sharp all month long</h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-stone-200">
-              For clients who keep the cut fresh all month. The pass covers one eligible haircut, fade, lineup, trim, or bald value per booking; add-ons such as beard, colour, facial, enhancement, and line design remain payable.
+              Look fresh every week without breaking the bank. Choose Gold, Platinum, Black Card, or claim the founding members rate before the first 50 slots are gone.
             </p>
             <p className="mt-6 inline-flex rounded-md bg-amber-400 px-4 py-3 text-2xl font-black text-stone-950">
-              N${monthlySubscription.price}/month
+              From N$400/month
             </p>
           </div>
 
           <div className="rounded-lg bg-white p-6 text-stone-950">
-            <p className="text-sm font-bold uppercase text-amber-700">How to sign up</p>
+            <p className="text-sm font-bold uppercase text-amber-700">{monthlySubscription.name}</p>
+            <h3 className="mt-2 text-2xl font-black">N${monthlySubscription.price}/month for the first 50 members</h3>
             <ol className="mt-4 list-decimal space-y-3 pl-5 text-sm font-semibold leading-6 text-stone-700">
               {monthlySubscription.signupSteps.map((step) => (
                 <li key={step}>{step}</li>
@@ -189,11 +197,11 @@ const HomePage = ({ setCurrentPage, services = {}, servicesNotice = '' }) => {
             <div className="mt-6 flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={() => setCurrentPage('booking')}
+                onClick={() => setCurrentPage('membership')}
                 className="inline-flex items-center gap-2 rounded-md bg-stone-950 px-5 py-3 text-sm font-black text-white transition hover:bg-stone-800"
               >
                 <CalendarCheck size={17} />
-                Book and Sign Up
+                View Plans
               </button>
               <a
                 href="tel:+264814748665"
